@@ -36,21 +36,27 @@ class Grade(StrEnum):
 MIN_GAMES_DRAWN_FOR_INFERENCE = 100
 MIN_GAMES_DRAWN = 500
 
-GRADE_THRESHOLDS = [
-  [Grade.A_PLUS, 99],
-  [Grade.A, 95],
-  [Grade.A_MINUS, 90],
-  [Grade.B_PLUS, 85],
-  [Grade.B, 76],
-  [Grade.B_MINUS, 68],
-  [Grade.C_PLUS, 57],
-  [Grade.C, 45],
-  [Grade.C_MINUS, 36],
-  [Grade.D_PLUS, 27],
-  [Grade.D, 17],
-  [Grade.D_MINUS, 5],
-  [Grade.F, 0],
-]
+GRADE_THRESHOLDS = {
+    Grade.A_PLUS: 99,
+    Grade.A: 95,
+    Grade.A_MINUS: 90,
+    Grade.B_PLUS: 85,
+    Grade.B: 76,
+    Grade.B_MINUS: 68,
+    Grade.C_PLUS: 57,
+    Grade.C: 45,
+    Grade.C_MINUS: 36,
+    Grade.D_PLUS: 27,
+    Grade.D: 17,
+    Grade.D_MINUS: 5,
+    Grade.F: 0,
+}
+
+def get_grade_for_score(score: float):
+    for grade, threshold in GRADE_THRESHOLDS.items():
+        if score >= threshold:
+            return grade
+    return Grade.F
 
 def print_sealed_course_info(course: dict):
     pool = course["CardPool"]
@@ -224,13 +230,15 @@ def main():
                                 "2025-08-01")
     rankings_by_arena_id = {}
 
-    arena_id_to_win_rates = {}
+    win_rates_by_arena_id = {}
+    ever_drawn_win_rates_by_arena_id = {}
 
     histogram = {
         "all": 0,
         "ever_drawn_win_rate": 0,
         "ever_drawn_game_count": 0,
         "drawn_win_rate": 0,
+        "win_rate": 0,
     }
 
     for card in eoe_rankings:
@@ -238,7 +246,7 @@ def main():
 
         if card["ever_drawn_win_rate"]:
             histogram["ever_drawn_win_rate"] += 1
-            arena_id_to_win_rates[card["mtga_id"]] = card["ever_drawn_win_rate"]
+            ever_drawn_win_rates_by_arena_id[card["mtga_id"]] = card["ever_drawn_win_rate"]
 
         if card["ever_drawn_game_count"]:
             histogram["ever_drawn_game_count"] += 1
@@ -246,13 +254,16 @@ def main():
         if card["drawn_win_rate"]:
             histogram["drawn_win_rate"] += 1
 
+        if card["win_rate"]:
+            histogram["win_rate"] += 1
+            win_rates_by_arena_id[card["mtga_id"]] = card["win_rate"]
 
         histogram["all"] += 1
 
-    winrates_mean = np.mean(list(arena_id_to_win_rates.values()))
-    winrates_std = np.std(list(arena_id_to_win_rates.values()), ddof=1)
+    winrates_mean = np.mean(list(win_rates_by_arena_id.values()))
+    winrates_std = np.std(list(win_rates_by_arena_id.values()), ddof=1)
 
-    pprint.pprint(arena_id_to_win_rates)
+    pprint.pprint(win_rates_by_arena_id)
 
     print(winrates_mean)
     print(winrates_std)
@@ -262,14 +273,26 @@ def main():
     # pprint.pprint(rankings_by_arena_id)
 
     table = []
-    for arena_id, win_rate in arena_id_to_win_rates.items():
-        rankings = rankings_by_arena_id[arena_id]
-        table.append((arena_id, rankings["name"], win_rate))
+    for arena_id, rankings in rankings_by_arena_id.items():
+        win_rate = "N/A"
+        ever_drawn_win_rate = "N/A"
+        score = "N/A"
+        grade = "N/A"
+        if arena_id in win_rates_by_arena_id:
+            win_rate = win_rates_by_arena_id[arena_id]
+            score = normal_distribution.cdf(win_rate) * 100
+            grade = get_grade_for_score(score)
+        if arena_id in ever_drawn_win_rates_by_arena_id:
+            ever_drawn_win_rate = ever_drawn_win_rates_by_arena_id[arena_id]
+        table.append((arena_id, rankings["name"], rankings["rarity"], grade, score, win_rate, ever_drawn_win_rate))
+        pprint.pprint(rankings)
 
     print(tabulate(table))
-
+    # pprint.pprint(histogram)
 
     # load_limited_grades()
+
+
 
 if __name__ == "__main__":
     main()
