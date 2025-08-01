@@ -173,6 +173,95 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
     table_sorted = sorted(table, key=lambda item: item[-1], reverse=True)
     print(tabulate(table_sorted))
 
+    # by color
+    ALL_COLORS = "WUBRG"
+    color_tuples = set()
+
+    for color_a in list(ALL_COLORS):
+        for color_b in list(ALL_COLORS):
+            if color_a == color_b:
+                continue
+            color_tuple = [color_a, color_b]
+            color_tuple.sort()
+            color_tuples.add(tuple(color_tuple))
+
+    print(f"We have {len(color_tuples)} tuples")
+
+    tuples_by_score = {}
+
+    for color_a, color_b in color_tuples:
+        color_tuple_scores = []
+
+        table = []
+        for arena_id, count in pool_id_by_count.items():
+            rankings = rankings_by_arena_id[arena_id]
+
+            colors = list(rankings["color"])
+
+            if len(colors) > 1:
+                if color_a not in colors:
+                    continue
+                if color_b not in colors:
+                    continue
+            elif len(colors) == 1:
+                relevant = False
+                if color_a in colors:
+                    relevant = True
+                if color_b in colors:
+                    relevant = True
+                if not relevant:
+                    continue
+
+            win_rate = 0
+            if rankings["ever_drawn_win_rate"]:
+                win_rate = rankings["ever_drawn_win_rate"] * 100
+
+            if rankings["ever_drawn_score"]:
+                color_tuple_scores.append(rankings["ever_drawn_score"])
+
+            table.append((
+                # arena_id,
+                rankings["name"],
+                rarity_to_emoji(rankings["rarity"]),
+                format_color_id_emoji(list(rankings["color"])),
+                " ".join(rankings["types"]),
+                # rankings["grade"],
+                # rankings["score"],
+                # rankings["win_rate"],
+                grade_color_string(rankings["ever_drawn_grade"]),
+                # rankings["ever_drawn_score"],
+                f"{win_rate:.2f}"
+            ))
+
+        sorted_color_tuple_scores = sorted(color_tuple_scores, reverse=True)
+        best_23_scores = sorted_color_tuple_scores[:23]
+        top23_mean_color_tuple_scores = np.mean(best_23_scores)
+        pool_mean_color_tuple_scores = np.mean(color_tuple_scores)
+        print(color_id_to_emoji(color_a), color_id_to_emoji(color_b), len(table), "/", 40 - 17, top23_mean_color_tuple_scores, pool_mean_color_tuple_scores)
+        table_sorted = sorted(table, key=lambda item: item[-1], reverse=True)
+        # print(tabulate(table_sorted))
+
+        tuples_by_score[(color_a, color_b)] = float(top23_mean_color_tuple_scores)
+
+        table_spaced = []
+        for i, row in enumerate(table_sorted):
+            table_spaced.append(row)
+            if i == 23:
+                table_spaced.append(())
+        print(tabulate(table_spaced))
+
+        # pprint.pprint(tuples_by_score)
+
+    tuples_by_score_sorted = sorted(tuples_by_score.items(), key=lambda item: item[-1], reverse=True)
+
+    # pprint.pprint(tuples_by_score_sorted)
+
+    for color_tuple, score in tuples_by_score_sorted:
+        color_a, color_b = color_tuple
+        print(color_id_to_emoji(color_a), color_id_to_emoji(color_b), score)
+
+
+
 def pull_17lands(expansion: str, format_name: str, start: str, end: str):
     params = {
         "expansion": expansion,
