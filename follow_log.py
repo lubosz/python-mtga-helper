@@ -53,6 +53,16 @@ GRADE_THRESHOLDS = {
     Grade.F: 0,
 }
 
+def grade_to_colored(grade: Grade):
+
+    threshold: int = GRADE_THRESHOLDS[grade]
+
+    green = int(255.0 * ( threshold / 100.0))
+    red = 255 - green
+    blue = 0
+
+    return red, green, blue
+
 def color_id_to_colored(color_id: str):
     match color_id:
         case "W":
@@ -91,6 +101,15 @@ def rarity_to_emoji(rarity: str):
             return "🟨"
         case "mythic":
             return "🟥"
+
+
+def grade_color_string(grade: Grade) -> str:
+    if not grade:
+        return ""
+
+    color = grade_to_colored(grade)
+
+    return colored(str(grade), color=color)
 
 
 def format_color_id_string(colors: list[str]) -> str:
@@ -144,7 +163,7 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
             # rankings["grade"],
             # rankings["score"],
             # rankings["win_rate"],
-            rankings["ever_drawn_grade"],
+            grade_color_string(rankings["ever_drawn_grade"]),
             # rankings["ever_drawn_score"],
             f"{win_rate:.2f}"
         ))
