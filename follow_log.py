@@ -6,6 +6,21 @@ import json
 import pprint
 from tabulate import tabulate
 
+
+def print_sealed_course_info(course: dict):
+    pool = course["CardPool"]
+
+    assert len(pool) > 0
+
+    pool_id_by_count = {}
+    for pool_id in pool:
+        if pool_id not in pool_id_by_count:
+            pool_id_by_count[pool_id] = 1
+        else:
+            pool_id_by_count[pool_id] += 1
+
+    pprint.pprint(pool_id_by_count)
+
 def main():
     # parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
 
@@ -107,6 +122,9 @@ def main():
         event_format = "N/A"
         if attribs:
             event_format = attribs["Format"]
+
+        if event_format == "Sealed":
+            print_sealed_course_info(course)
 
         row = (
             # course["CourseId"],
