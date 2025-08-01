@@ -210,6 +210,67 @@ def get_sealed_courses(courses: list) -> list:
                 sealed_courses.append(course)
     return sealed_courses
 
+def get_normal_distribution(rankings, key):
+    win_rates = []
+
+    for card in rankings:
+        if card[key]:
+            win_rates.append(card[key])
+
+    winrates_mean = np.mean(win_rates)
+    winrates_std = np.std(win_rates, ddof=1)
+
+    return NormalDistribution(float(winrates_mean), float(winrates_std))
+
+def print_rankings_key_histogram(rankings):
+    histogram = {
+        "all": 0,
+        "ever_drawn_win_rate": 0,
+        "ever_drawn_game_count": 0,
+        "drawn_win_rate": 0,
+        "win_rate": 0,
+    }
+    for card in rankings:
+        if card["ever_drawn_win_rate"]:
+            histogram["ever_drawn_win_rate"] += 1
+        if card["ever_drawn_game_count"]:
+            histogram["ever_drawn_game_count"] += 1
+        if card["drawn_win_rate"]:
+            histogram["drawn_win_rate"] += 1
+        if card["win_rate"]:
+            histogram["win_rate"] += 1
+        histogram["all"] += 1
+    pprint.pprint(histogram)
+
+def get_graded_rankings():
+    eoe_rankings = pull_17lands("eoe",
+                                "PremierDraft",
+                                "2025-07-29",
+                                "2025-08-01")
+    rankings_by_arena_id = {}
+
+    for card in eoe_rankings:
+        rankings_by_arena_id[card["mtga_id"]] = card
+
+    print_rankings_key_histogram(eoe_rankings)
+
+    win_rate_normal_distribution = get_normal_distribution(eoe_rankings, "win_rate")
+    ever_drawn_win_rate_normal_distribution = get_normal_distribution(eoe_rankings, "ever_drawn_win_rate")
+
+    for arena_id, rankings in rankings_by_arena_id.items():
+        rankings["score"] = None
+        rankings["grade"] = None
+        rankings["ever_drawn_score"] = None
+        rankings["ever_drawn_grade"] = None
+        if rankings["win_rate"]:
+            rankings["score"] = win_rate_normal_distribution.cdf(rankings["win_rate"]) * 100
+            rankings["grade"] = get_grade_for_score(rankings["score"])
+        if rankings["ever_drawn_win_rate"]:
+            rankings["ever_drawn_score"] = ever_drawn_win_rate_normal_distribution.cdf(rankings["ever_drawn_win_rate"]) * 100
+            rankings["ever_drawn_grade"] = get_grade_for_score(rankings["ever_drawn_score"])
+
+    return rankings_by_arena_id
+
 def main():
     # parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
     # parser.add_argument('log_path', type=Path)
@@ -219,77 +280,23 @@ def main():
     # player_log = get_player_log_lines()
     # courses = get_latest_event_courses(player_log)
     # # print_courses(courses)
-    #
     # sealed_courses = get_sealed_courses(courses)
-    #
     # print_sealed_course_info(sealed_courses[0])
 
-    eoe_rankings = pull_17lands("eoe",
-                                "PremierDraft",
-                                "2025-07-29",
-                                "2025-08-01")
-    rankings_by_arena_id = {}
-
-    win_rates_by_arena_id = {}
-    ever_drawn_win_rates_by_arena_id = {}
-
-    histogram = {
-        "all": 0,
-        "ever_drawn_win_rate": 0,
-        "ever_drawn_game_count": 0,
-        "drawn_win_rate": 0,
-        "win_rate": 0,
-    }
-
-    for card in eoe_rankings:
-        rankings_by_arena_id[card["mtga_id"]] = card
-
-        if card["ever_drawn_win_rate"]:
-            histogram["ever_drawn_win_rate"] += 1
-            ever_drawn_win_rates_by_arena_id[card["mtga_id"]] = card["ever_drawn_win_rate"]
-
-        if card["ever_drawn_game_count"]:
-            histogram["ever_drawn_game_count"] += 1
-
-        if card["drawn_win_rate"]:
-            histogram["drawn_win_rate"] += 1
-
-        if card["win_rate"]:
-            histogram["win_rate"] += 1
-            win_rates_by_arena_id[card["mtga_id"]] = card["win_rate"]
-
-        histogram["all"] += 1
-
-    winrates_mean = np.mean(list(win_rates_by_arena_id.values()))
-    winrates_std = np.std(list(win_rates_by_arena_id.values()), ddof=1)
-
-    pprint.pprint(win_rates_by_arena_id)
-
-    print(winrates_mean)
-    print(winrates_std)
-
-    normal_distribution = NormalDistribution(float(winrates_mean), float(winrates_std))
-
-    # pprint.pprint(rankings_by_arena_id)
+    rankings_by_arena_id = get_graded_rankings()
 
     table = []
     for arena_id, rankings in rankings_by_arena_id.items():
-        win_rate = "N/A"
-        ever_drawn_win_rate = "N/A"
-        score = "N/A"
-        grade = "N/A"
-        if arena_id in win_rates_by_arena_id:
-            win_rate = win_rates_by_arena_id[arena_id]
-            score = normal_distribution.cdf(win_rate) * 100
-            grade = get_grade_for_score(score)
-        if arena_id in ever_drawn_win_rates_by_arena_id:
-            ever_drawn_win_rate = ever_drawn_win_rates_by_arena_id[arena_id]
-        table.append((arena_id, rankings["name"], rankings["rarity"], grade, score, win_rate, ever_drawn_win_rate))
-        pprint.pprint(rankings)
-
+        table.append((arena_id,
+                      rankings["name"],
+                      rankings["rarity"],
+                      rankings["grade"],
+                      rankings["score"],
+                      rankings["win_rate"],
+                      rankings["ever_drawn_grade"],
+                      rankings["ever_drawn_score"],
+                      rankings["ever_drawn_win_rate"]))
     print(tabulate(table))
-    # pprint.pprint(histogram)
-
     # load_limited_grades()
 
 
