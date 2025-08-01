@@ -132,6 +132,26 @@ def get_grade_for_score(score: float):
             return grade
     return Grade.F
 
+def land_string_to_colors(land_type_str: str):
+    found_colors = set()
+    for chunk in land_type_str.split():
+        match chunk:
+            case "Plains":
+                found_colors.add("W")
+            case "Island":
+                found_colors.add("U")
+            case "Swamp":
+                found_colors.add("B")
+            case "Mountain":
+                found_colors.add("R")
+            case "Forest":
+                found_colors.add("G")
+
+    if found_colors:
+        return "".join(list(found_colors))
+
+    return None
+
 def print_sealed_course_info(rankings_by_arena_id, course: dict):
     pool = course["CardPool"]
 
@@ -451,6 +471,14 @@ def get_graded_rankings():
         rankings["grade"] = None
         rankings["ever_drawn_score"] = None
         rankings["ever_drawn_grade"] = None
+
+        if not rankings["color"]:
+            for card_type in rankings["types"]:
+                if "Land" in card_type:
+                    found_colors = land_string_to_colors(card_type)
+                    if found_colors:
+                        rankings["color"] = found_colors
+
         if rankings["win_rate"]:
             rankings["score"] = win_rate_normal_distribution.cdf(rankings["win_rate"]) * 100
             rankings["grade"] = get_grade_for_score(rankings["score"])
