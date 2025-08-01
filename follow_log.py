@@ -58,7 +58,7 @@ def get_grade_for_score(score: float):
             return grade
     return Grade.F
 
-def print_sealed_course_info(course: dict):
+def print_sealed_course_info(rankings_by_arena_id, course: dict):
     pool = course["CardPool"]
 
     assert len(pool) > 0
@@ -70,8 +70,34 @@ def print_sealed_course_info(course: dict):
         else:
             pool_id_by_count[pool_id] += 1
 
-    pprint.pprint(pool_id_by_count)
+    # pprint.pprint(pool_id_by_count)
 
+    table = []
+    for arena_id, count in pool_id_by_count.items():
+        rankings = rankings_by_arena_id[arena_id]
+
+        win_rate = 0
+        if rankings["ever_drawn_win_rate"]:
+            win_rate = rankings["ever_drawn_win_rate"] * 100
+
+        table.append((
+            # arena_id,
+            rankings["name"],
+            rankings["rarity"],
+            rankings["color"],
+            " ".join(rankings["types"]),
+            # rankings["grade"],
+            # rankings["score"],
+            # rankings["win_rate"],
+            rankings["ever_drawn_grade"],
+            # rankings["ever_drawn_score"],
+            f"{win_rate:.2f}"
+        ))
+
+        # pprint.pprint(rankings)
+
+    table_sorted = sorted(table, key=lambda item: item[-1], reverse=True)
+    print(tabulate(table_sorted))
 
 def pull_17lands(expansion: str, format_name: str, start: str, end: str):
     params = {
@@ -277,28 +303,27 @@ def main():
     # args = parser.parse_args()
     # print(args.log_path)
 
-    # player_log = get_player_log_lines()
-    # courses = get_latest_event_courses(player_log)
-    # # print_courses(courses)
-    # sealed_courses = get_sealed_courses(courses)
-    # print_sealed_course_info(sealed_courses[0])
-
     rankings_by_arena_id = get_graded_rankings()
 
-    table = []
-    for arena_id, rankings in rankings_by_arena_id.items():
-        table.append((arena_id,
-                      rankings["name"],
-                      rankings["rarity"],
-                      rankings["grade"],
-                      rankings["score"],
-                      rankings["win_rate"],
-                      rankings["ever_drawn_grade"],
-                      rankings["ever_drawn_score"],
-                      rankings["ever_drawn_win_rate"]))
-    print(tabulate(table))
+    # table = []
+    # for arena_id, rankings in rankings_by_arena_id.items():
+    #     table.append((arena_id,
+    #                   rankings["name"],
+    #                   rankings["rarity"],
+    #                   rankings["grade"],
+    #                   rankings["score"],
+    #                   rankings["win_rate"],
+    #                   rankings["ever_drawn_grade"],
+    #                   rankings["ever_drawn_score"],
+    #                   rankings["ever_drawn_win_rate"]))
+    # print(tabulate(table))
     # load_limited_grades()
 
+    player_log = get_player_log_lines()
+    courses = get_latest_event_courses(player_log)
+    # print_courses(courses)
+    sealed_courses = get_sealed_courses(courses)
+    print_sealed_course_info(rankings_by_arena_id, sealed_courses[0])
 
 
 if __name__ == "__main__":
