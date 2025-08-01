@@ -7,6 +7,11 @@ import pprint
 from tabulate import tabulate
 import requests
 from IPython import embed
+from urllib.parse import urlencode
+
+CACHE_DIR = Path("cache")
+CACHE_DIR_17LANDS = CACHE_DIR / "17lands"
+CACHE_DIR_17LANDS.mkdir(parents=True, exist_ok=True)
 
 def print_sealed_course_info(course: dict):
     pool = course["CardPool"]
@@ -23,10 +28,27 @@ def print_sealed_course_info(course: dict):
     pprint.pprint(pool_id_by_count)
 
 
-def pull_17lands():
-    url = "https://www.17lands.com/card_ratings/data?expansion=eoe&format=PremierDraft&start_date=2025-07-29&end_date=2025-08-01"
-    res = requests.get(url)
-    embed()
+def pull_17lands(expansion: str, format_name: str, start: str, end: str):
+    params = {
+        "expansion": expansion,
+        "format": format_name,
+        "start_date": start,
+        "end_date": end,
+    }
+    params_str = urlencode(params)
+    cache_file = CACHE_DIR_17LANDS / f"{params_str}.json"
+
+    if not cache_file.is_file():
+        res = requests.get("https://www.17lands.com/card_ratings/data", params=params)
+        res.raise_for_status()
+        with cache_file.open("w") as f:
+            f.write(res.text)
+        return res.json()
+    else:
+        print("Using cache")
+        with cache_file.open("r") as f:
+            return json.loads(f.read())
+
 
 def get_log_path() -> Path:
     steam_path = Path.home() / ".local/share/Steam"
@@ -149,14 +171,19 @@ def main():
     # args = parser.parse_args()
     # print(args.log_path)
 
-    player_log = get_player_log_lines()
-    courses = get_latest_event_courses(player_log)
-    # print_courses(courses)
+    # player_log = get_player_log_lines()
+    # courses = get_latest_event_courses(player_log)
+    # # print_courses(courses)
+    #
+    # sealed_courses = get_sealed_courses(courses)
+    #
+    # print_sealed_course_info(sealed_courses[0])
 
-    sealed_courses = get_sealed_courses(courses)
-
-    print_sealed_course_info(sealed_courses[0])
-
+    eoe_rankings = pull_17lands("eoe", "PremierDraft", "2025-07-29", "2025-08-01")
+    rankings_by_arena_id = {}
+    for card in eoe_rankings:
+        rankings_by_arena_id[card["mtga_id"]] = card
+    pprint.pprint(rankings_by_arena_id)
 
 if __name__ == "__main__":
     main()
