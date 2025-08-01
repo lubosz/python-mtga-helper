@@ -10,6 +10,7 @@ import requests
 from IPython import embed
 from urllib.parse import urlencode
 import numpy as np
+from termcolor import colored
 
 from normal_distribution import NormalDistribution
 
@@ -52,6 +53,60 @@ GRADE_THRESHOLDS = {
     Grade.F: 0,
 }
 
+def color_id_to_colored(color_id: str):
+    match color_id:
+        case "W":
+            return "light_yellow"
+        case "B":
+            return "light_grey"
+        case "U":
+            return "light_blue"
+        case "R":
+            return "light_red"
+        case "G":
+            return "light_green"
+
+
+def color_id_to_emoji(color_id: str):
+    match color_id:
+        case "W":
+            return "⚪"
+        case "B":
+            return "⚫"
+        case "U":
+            return "🔵"
+        case "R":
+            return "🔴"
+        case "G":
+            return "🟢"
+
+
+def rarity_to_emoji(rarity: str):
+    match rarity:
+        case "common":
+            return "⬛"
+        case "uncommon":
+            return "⬜"
+        case "rare":
+            return "🟨"
+        case "mythic":
+            return "🟥"
+
+
+def format_color_id_string(colors: list[str]) -> str:
+    colored_colors = []
+    colors.sort()
+    for color in colors:
+        colored_colors.append(colored(color, color_id_to_colored(color)))
+    return " ".join(colored_colors)
+
+def format_color_id_emoji(colors: list[str]):
+    colored_colors = []
+    colors.sort()
+    for color in colors:
+        colored_colors.append(color_id_to_emoji(color))
+    return " ".join(colored_colors)
+
 def get_grade_for_score(score: float):
     for grade, threshold in GRADE_THRESHOLDS.items():
         if score >= threshold:
@@ -83,8 +138,8 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
         table.append((
             # arena_id,
             rankings["name"],
-            rankings["rarity"],
-            rankings["color"],
+            rarity_to_emoji(rankings["rarity"]),
+            format_color_id_emoji(list(rankings["color"])),
             " ".join(rankings["types"]),
             # rankings["grade"],
             # rankings["score"],
