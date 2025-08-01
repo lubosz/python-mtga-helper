@@ -115,9 +115,6 @@ def print_courses(courses: list):
         if attribs:
             event_format = attribs["Format"]
 
-        if event_format == "Sealed":
-            print_sealed_course_info(course)
-
         row = (
             # course["CourseId"],
             deck_name,
@@ -138,21 +135,27 @@ def print_courses(courses: list):
         "Losses",
     )))
 
+def get_sealed_courses(courses: list) -> list:
+    sealed_courses = []
+    for course in courses:
+        for attrib in course["CourseDeckSummary"]["Attributes"]:
+            if attrib["name"] == "Format" and attrib["value"] == "Sealed":
+                sealed_courses.append(course)
+    return sealed_courses
+
 def main():
     # parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
     # parser.add_argument('log_path', type=Path)
     # args = parser.parse_args()
     # print(args.log_path)
 
-
     player_log = get_player_log_lines()
     courses = get_latest_event_courses(player_log)
-    print_courses(courses)
+    # print_courses(courses)
 
+    sealed_courses = get_sealed_courses(courses)
 
-
-
-
+    print_sealed_course_info(sealed_courses[0])
 
 
 if __name__ == "__main__":
