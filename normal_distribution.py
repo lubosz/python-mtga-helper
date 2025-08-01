@@ -4,6 +4,10 @@
 import math
 
 # prettier-ignore
+"""
+Returns an object representing the standardized z-table
+@return {Object} the zTable
+"""
 Z_TABLE = {
     "z"  :  [0     , 0.01  , 0.02  , 0.03  , 0.04,   0.05  , 0.06  , 0.07  , 0.08  , 0.09  ],
     "0"  :  [0.5000, 0.5040, 0.5080, 0.5120, 0.5160, 0.5199, 0.5239, 0.5279, 0.5319, 0.5359],
@@ -49,7 +53,7 @@ class NormalDistribution:
     @param {number} [mean=0] - the mean average
     @param {number} [standardDeviation=1] - the standard deviation
     """
-    def __init__(self, mean: float, standard_deviation: float = 1.0):
+    def __init__(self, mean: float = 0.0, standard_deviation: float = 1.0):
         self.mean: float = mean
         self.standard_deviation: float = standard_deviation
 
@@ -105,8 +109,17 @@ class NormalDistribution:
         return abs(self.cdf(value1) - self.cdf(value2))
 
 
-    """
-    Returns an object representing the standardized z-table
-    @return {Object} the zTable
-    """
+def test():
+    nd = NormalDistribution()
+    assert nd.cdf(0) == 0.5
+    assert nd.cdf(-4) == 0
+    assert nd.cdf(4) == 1
 
+    assert nd.pdf(0) == 0.3989422804014327
+    assert math.isclose(nd.pdf(-4), 0.00013383022576488545)
+    assert math.isclose(nd.pdf(4), 0.00013383022576488545)
+
+    assert nd.probability_between(-4, 4) == 1
+
+if __name__ == "__main__":
+    test()
