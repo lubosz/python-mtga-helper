@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import colorsys
 import os
 import time
 from datetime import timezone, datetime
@@ -54,12 +55,12 @@ GRADE_THRESHOLDS = {
     Grade.F: 0,
 }
 
-def grade_to_colored(grade: Grade):
+def grade_to_colored(grade: Grade) -> tuple[int, int, int]:
     threshold: int = GRADE_THRESHOLDS[grade]
-    green = int(255.0 * ( threshold / 100.0))
-    red = 255 - green
-    blue = 0
-    return red, green, blue
+    hue = threshold / (3 * 100.0)
+    rgb_float = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
+    rgb_int = [int(c * 255) for c in rgb_float]
+    return tuple[int, int, int](rgb_int)
 
 def color_id_to_emoji(color_id: str):
     match color_id:
