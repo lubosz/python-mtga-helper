@@ -343,9 +343,8 @@ def print_courses(courses: list):
 def get_sealed_courses(courses: list) -> list:
     sealed_courses = []
     for course in courses:
-        for attrib in course["CourseDeckSummary"]["Attributes"]:
-            if attrib["name"] == "Format" and attrib["value"] == "Sealed":
-                sealed_courses.append(course)
+        if course["InternalEventName"].startswith("Sealed") and course["CardPool"]:
+            sealed_courses.append(course)
     return sealed_courses
 
 def get_normal_distribution(rankings, key):
@@ -472,6 +471,9 @@ def follow_player_log(player_log_path: Path):
                 event_courses = json.loads(line)
                 courses = event_courses["Courses"]
                 print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
+
+                # print_courses(courses)
+
                 sealed_courses = get_sealed_courses(courses)
                 print(f"Found {len(sealed_courses)} ongoing sealed games.")
                 for course in sealed_courses:
