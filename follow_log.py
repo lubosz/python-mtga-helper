@@ -158,7 +158,7 @@ def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list, include
 
     return pool_rankings_by_color_pair
 
-def get_top_mean_score(rankings: list, score_key: str, card_count: int) -> float:
+def get_top_scores(rankings: list, score_key: str, card_count: int) -> tuple[float, float, float]:
     scores = []
     for ranking in rankings:
         if ranking[score_key]:
@@ -166,7 +166,9 @@ def get_top_mean_score(rankings: list, score_key: str, card_count: int) -> float
 
     sorted_scores = sorted(scores, reverse=True)
     top_scores = sorted_scores[:card_count]
-    return float(np.mean(top_scores))
+    worst_of_top = top_scores[-1]
+    best_of_top = top_scores[0]
+    return float(np.mean(top_scores)), best_of_top, worst_of_top
 
 
 LIMITED_DECK_SIZE = 40
@@ -186,18 +188,21 @@ def count_creatures(rankings: list) -> tuple[int, int]:
 
     return creature_count, non_creature_count
 
-def color_pair_stats_row(i: int, color_pair: str, score, rankings: list) -> tuple:
+def color_pair_stats_row(i: int, color_pair: str, score_triple: tuple, rankings: list) -> tuple:
 
     creature_count, non_creature_count = count_creatures(rankings)
+
+    mean, best, worst = score_triple
 
     return (
         i + 1,
         f"{format_color_id_emoji(color_pair)} {COLOR_PAIRS[color_pair]}",
-        grade_color_string(get_grade_for_score(score)),
-        score,
-        len(rankings),
+        grade_color_string(get_grade_for_score(mean)),
+        mean,
+        f"{grade_color_string(get_grade_for_score(best))} - {grade_color_string(get_grade_for_score(worst))}",
         creature_count,
-        non_creature_count
+        non_creature_count,
+        len(rankings),
     )
 
 def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
@@ -209,25 +214,23 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
 
     # by color
     pool_rankings_by_color_pair = split_pool_by_color_pair(set_rankings_by_arena_id, pool)
-    score_by_color_pair = {}
+    scores_by_color_pair = {}
     for color_pair, rankings in pool_rankings_by_color_pair.items():
-        score_by_color_pair[color_pair] = get_top_mean_score(rankings,
-                                                                   "ever_drawn_score",
-                                                                   TARGET_NON_LAND_COUNT)
+        scores_by_color_pair[color_pair] = get_top_scores(rankings, "ever_drawn_score", TARGET_NON_LAND_COUNT)
 
-    score_by_color_pair_sorted = sorted(score_by_color_pair.items(), key=lambda item: item[-1], reverse=True)
+    score_by_color_pair_sorted = sorted(scores_by_color_pair.items(), key=lambda item: item[-1], reverse=True)
 
-    for i, (color_pair, score) in enumerate(score_by_color_pair_sorted):
+    for i, (color_pair, score_triple) in enumerate(score_by_color_pair_sorted):
         if i < TOP_COLOR_PAIR_PRINT_COUNT:
             rankings = pool_rankings_by_color_pair[color_pair]
-            print(*color_pair_stats_row(i, color_pair, score, rankings))
+            print(*color_pair_stats_row(i, color_pair, score_triple, rankings))
             print_rankings(rankings, insert_space_at_line=TARGET_NON_LAND_COUNT)
 
     table = []
-    for i, (color_pair, score) in enumerate(score_by_color_pair_sorted):
+    for i, (color_pair, score_triple) in enumerate(score_by_color_pair_sorted):
         rankings = pool_rankings_by_color_pair[color_pair]
-        table.append(color_pair_stats_row(i, color_pair, score, rankings))
-    print(tabulate(table, headers=("", "Pair", "Grade", "Score", "Non Lands", "Creatures", "Non Creatures")))
+        table.append(color_pair_stats_row(i, color_pair, score_triple, rankings))
+    print(tabulate(table, headers=("", "Pair", "Mean", "Score", "Range", "Creatures", "Non Creatures", "Non Lands")))
 
 def pull_17lands(expansion: str, format_name: str, start: str, end: str):
     params = {
