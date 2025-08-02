@@ -16,7 +16,7 @@ import requests
 from urllib.parse import urlencode
 import numpy as np
 from termcolor import colored
-from normal_distribution import NormalDistribution
+from .normal_distribution import NormalDistribution
 from xdg_base_dirs import xdg_cache_home
 
 APP_NAME = "python-mtga-helper"
