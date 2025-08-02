@@ -198,9 +198,8 @@ def color_pair_stats_row(i: int, color_pair: str, score_triple: tuple, rankings:
         len(rankings),
     )
 
-def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list,
-                             target_land_count: int, top_color_pair_print_count: int):
-    target_non_land_count = LIMITED_DECK_SIZE - target_land_count
+def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list, args: argparse.Namespace):
+    target_non_land_count = LIMITED_DECK_SIZE - args.land_count
 
     # all colors
     pool_rankings = []
@@ -217,7 +216,7 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list,
     score_by_color_pair_sorted = sorted(scores_by_color_pair.items(), key=lambda item: item[-1], reverse=True)
 
     for i, (color_pair, score_triple) in enumerate(score_by_color_pair_sorted):
-        if i < top_color_pair_print_count:
+        if i < args.print_top_pairs:
             rankings = pool_rankings_by_color_pair[color_pair]
 
             rank, pair_str, mean_grade, mean_score, grade_range, num_creatures, num_non_creatures, num_non_lands = \
@@ -261,7 +260,6 @@ def pull_17lands(expansion: str, format_name: str, start: str, end: str):
             f.write(res.text)
         return res.json()
     else:
-        print("Using cache")
         with cache_file.open("r") as f:
             return json.loads(f.read())
 
@@ -409,7 +407,7 @@ def has_card_type(ranking: dict, type_name: str) -> bool:
             return True
     return False
 
-def get_graded_rankings(set_handle: str, start_date: str):
+def get_graded_rankings(set_handle: str, start_date: str, args):
     end_date: str = datetime.now(timezone.utc).date().isoformat()
     eoe_rankings = pull_17lands(set_handle,
                                 "PremierDraft",
@@ -420,7 +418,8 @@ def get_graded_rankings(set_handle: str, start_date: str):
     for card in eoe_rankings:
         rankings_by_arena_id[card["mtga_id"]] = card
 
-    print_rankings_key_histogram(eoe_rankings)
+    if args.verbose:
+        print_rankings_key_histogram(eoe_rankings)
 
     normal_distribution = get_normal_distribution(eoe_rankings, "ever_drawn_win_rate")
 
@@ -484,8 +483,7 @@ def follow(file: TextIOWrapper) -> Iterator[str]:
             continue
         yield line.strip()
 
-def follow_player_log(player_log_path: Path,
-                      target_land_count: int, top_color_pair_print_count: int):
+def follow_player_log(player_log_path: Path, args: argparse.Namespace):
     with player_log_path.open('r') as player_log_file:
         course_id = ""
         for line in follow(player_log_file):
@@ -508,7 +506,8 @@ def follow_player_log(player_log_path: Path,
                 courses = event_courses["Courses"]
                 print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
 
-                # print_courses(courses)
+                if args.verbose:
+                    print_courses(courses)
 
                 sealed_courses = get_sealed_courses(courses)
                 print(f"Found {len(sealed_courses)} ongoing sealed games.")
@@ -525,10 +524,12 @@ def follow_player_log(player_log_path: Path,
                     event_start_date = datetime.strptime(event_start_date_str, "%Y%m%d").date()
                     print(f"Found event for set handle `{set_handle}` started {event_start_date}")
 
-                    rankings_by_arena_id = get_graded_rankings(set_handle, event_start_date.isoformat())
-                    # print_rankings(list(rankings_by_arena_id.values()))
-                    print_sealed_course_info(rankings_by_arena_id, course["CardPool"],
-                                             target_land_count, top_color_pair_print_count)
+                    rankings_by_arena_id = get_graded_rankings(set_handle, event_start_date.isoformat(), args)
+
+                    if args.verbose:
+                        print(f"== All Rankings for {set_handle.upper()} ==")
+                        print_rankings(list(rankings_by_arena_id.values()))
+                    print_sealed_course_info(rankings_by_arena_id, course["CardPool"], args)
                 course_id = ""
 
 def main():
@@ -536,6 +537,7 @@ def main():
     parser.add_argument('-l','--log-path', type=Path, help="Custom Player.log path (Default: auto)")
     parser.add_argument('--land-count', type=int, help="Target Land count (Default: 17)", default=17)
     parser.add_argument('--print-top-pairs', type=int, help="Top color pairs to print (Default: 3)", default=3)
+    parser.add_argument('-v', '--verbose', help="Log some intermediate steps", action="store_true")
     args = parser.parse_args()
 
     if args.log_path:
@@ -551,7 +553,7 @@ def main():
             return
 
     try:
-        follow_player_log(player_log_path, args.land_count, args.print_top_pairs)
+        follow_player_log(player_log_path, args)
     except KeyboardInterrupt:
         print("Bye")
 
