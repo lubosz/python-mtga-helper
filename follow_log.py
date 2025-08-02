@@ -142,21 +142,10 @@ def get_two_color_tuples() -> set[tuple]:
 
     return color_tuples
 
-def print_sealed_course_info(rankings_by_arena_id, course: dict):
-    pool = course["CardPool"]
-
-    assert len(pool) > 0
-
-    pool_id_by_count = {}
-    for pool_id in pool:
-        if pool_id not in pool_id_by_count:
-            pool_id_by_count[pool_id] = 1
-        else:
-            pool_id_by_count[pool_id] += 1
-
+def print_sealed_course_info(rankings_by_arena_id: dict, pool: list):
     # all colors
     pool_rankings = []
-    for arena_id, count in pool_id_by_count.items():
+    for arena_id in pool:
         pool_rankings.append(rankings_by_arena_id[arena_id])
     print_rankings(pool_rankings)
 
@@ -166,7 +155,7 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
         color_tuple_scores = []
 
         table = []
-        for arena_id, count in pool_id_by_count.items():
+        for arena_id in pool:
             rankings = rankings_by_arena_id[arena_id]
 
             colors = list(rankings["color"])
@@ -493,7 +482,7 @@ def follow_player_log(player_log_path: Path):
 
                     rankings_by_arena_id = get_graded_rankings(set_handle, event_start_date.isoformat())
                     # print_rankings(list(rankings_by_arena_id.values()))
-                    print_sealed_course_info(rankings_by_arena_id, course)
+                    print_sealed_course_info(rankings_by_arena_id, course["CardPool"])
                 course_id = ""
 
 def main():
