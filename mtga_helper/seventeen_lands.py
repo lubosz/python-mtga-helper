@@ -9,8 +9,9 @@ from urllib.parse import urlencode
 import requests
 from tabulate import tabulate
 from xdg_base_dirs import xdg_cache_home
+from scipy.stats import norm
 
-from mtga_helper.grading import get_normal_distribution, score_to_grade_string
+from mtga_helper.grading import score_to_grade_string, get_mean_and_std_dev
 from mtga_helper.mtg import land_string_to_colors, format_color_id_emoji, rarity_to_emoji
 
 APP_NAME = "python-mtga-helper"
@@ -54,7 +55,7 @@ def get_graded_rankings(set_handle: str, start_date: str, args):
     if args.verbose:
         print_rankings_key_histogram(eoe_rankings)
 
-    normal_distribution = get_normal_distribution(eoe_rankings, "ever_drawn_win_rate")
+    winrates_mean, winrates_std = get_mean_and_std_dev(eoe_rankings, "ever_drawn_win_rate")
 
     for arena_id, rankings in rankings_by_arena_id.items():
         rankings["ever_drawn_score"] = None
@@ -63,7 +64,8 @@ def get_graded_rankings(set_handle: str, start_date: str, args):
                 rankings["color"] = land_string_to_colors(card_type)
 
         if rankings["ever_drawn_win_rate"]:
-            rankings["ever_drawn_score"] = normal_distribution.cdf(rankings["ever_drawn_win_rate"]) * 100
+            rankings["ever_drawn_score"] = norm.cdf(rankings["ever_drawn_win_rate"],
+                                                    loc=winrates_mean, scale=winrates_std) * 100
 
     return rankings_by_arena_id
 

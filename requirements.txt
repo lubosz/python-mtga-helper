@@ -2,3 +2,4 @@ numpy
 termcolor
 tabulate
 requests
+scipy

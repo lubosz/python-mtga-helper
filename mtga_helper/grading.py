@@ -8,8 +8,6 @@ import colorsys
 from termcolor import colored
 import numpy as np
 
-from mtga_helper.normal_distribution import NormalDistribution
-
 class Grade(StrEnum):
     A_PLUS = "A+"
     A = "A"
@@ -61,7 +59,7 @@ def score_to_grade_string(score: float) -> str:
     color = grade_to_color(grade)
     return colored(str(grade), color=color)
 
-def get_normal_distribution(rankings, key):
+def get_mean_and_std_dev(rankings, key) -> tuple[float, float]:
     win_rates = []
 
     for card in rankings:
@@ -71,4 +69,4 @@ def get_normal_distribution(rankings, key):
     winrates_mean = np.mean(win_rates)
     winrates_std = np.std(win_rates, ddof=1)
 
-    return NormalDistribution(float(winrates_mean), float(winrates_std))
+    return float(winrates_mean), float(winrates_std)
