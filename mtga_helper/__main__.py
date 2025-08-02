@@ -3,78 +3,27 @@
 # SPDX-License-Identifier: MIT
 
 import argparse
-import colorsys
 import json
 from datetime import timezone, datetime
-from enum import StrEnum
 from pathlib import Path
 from urllib.parse import urlencode
 
 import requests
 from tabulate import tabulate
-import numpy as np
-from termcolor import colored
 from xdg_base_dirs import xdg_cache_home
+import numpy as np
 
+from mtga_helper.grading import score_to_grade_string, get_normal_distribution
 from mtga_helper.mtg import COLOR_PAIRS, LIMITED_DECK_SIZE, rarity_to_emoji, are_card_colors_in_pair, \
     format_color_id_emoji, land_string_to_colors
 from mtga_helper.mtga_log import get_log_path, follow, print_courses, get_sealed_courses
-from mtga_helper.normal_distribution import NormalDistribution
 
 APP_NAME = "python-mtga-helper"
 CACHE_DIR = xdg_cache_home() / APP_NAME
 CACHE_DIR_17LANDS = CACHE_DIR / "17lands"
 CACHE_DIR_17LANDS.mkdir(parents=True, exist_ok=True)
 
-class Grade(StrEnum):
-    A_PLUS = "A+"
-    A = "A"
-    A_MINUS = "A-"
-    B_PLUS = "B+"
-    B = "B"
-    B_MINUS = "B-"
-    C_PLUS = "C+"
-    C = "C"
-    C_MINUS = "C-"
-    D_PLUS = "D+"
-    D = "D"
-    D_MINUS = "D-"
-    F = "F"
 
-GRADE_THRESHOLDS = {
-    Grade.A_PLUS: 99,
-    Grade.A: 95,
-    Grade.A_MINUS: 90,
-    Grade.B_PLUS: 85,
-    Grade.B: 76,
-    Grade.B_MINUS: 68,
-    Grade.C_PLUS: 57,
-    Grade.C: 45,
-    Grade.C_MINUS: 36,
-    Grade.D_PLUS: 27,
-    Grade.D: 17,
-    Grade.D_MINUS: 5,
-    Grade.F: 0,
-}
-
-def grade_to_colored(grade: Grade) -> tuple[int, int, int]:
-    threshold: int = GRADE_THRESHOLDS[grade]
-    hue = threshold / (3 * 100.0)
-    rgb_float = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
-    rgb_int = [int(c * 255) for c in rgb_float]
-    return tuple[int, int, int](rgb_int)
-
-def grade_color_string(grade: Grade) -> str:
-    if not grade:
-        return ""
-    color = grade_to_colored(grade)
-    return colored(str(grade), color=color)
-
-def get_grade_for_score(score: float):
-    for grade, threshold in GRADE_THRESHOLDS.items():
-        if score >= threshold:
-            return grade
-    return Grade.F
 
 def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list, include_lands=False) -> dict:
     pool_rankings_by_color_pair = {}
@@ -122,9 +71,9 @@ def color_pair_stats_row(i: int, color_pair: str, score_triple: tuple, rankings:
     return (
         i + 1,
         f"{format_color_id_emoji(color_pair)} {COLOR_PAIRS[color_pair]}",
-        grade_color_string(get_grade_for_score(mean)),
+        score_to_grade_string(mean),
         mean,
-        f"{grade_color_string(get_grade_for_score(best))} - {grade_color_string(get_grade_for_score(worst))}",
+        f"{score_to_grade_string(best)} - {score_to_grade_string(worst)}",
         creature_count,
         non_creature_count,
         len(rankings),
@@ -197,18 +146,6 @@ def pull_17lands(expansion: str, format_name: str, start: str, end: str):
         with cache_file.open("r") as f:
             return json.loads(f.read())
 
-def get_normal_distribution(rankings, key):
-    win_rates = []
-
-    for card in rankings:
-        if card[key]:
-            win_rates.append(card[key])
-
-    winrates_mean = np.mean(win_rates)
-    winrates_std = np.std(win_rates, ddof=1)
-
-    return NormalDistribution(float(winrates_mean), float(winrates_std))
-
 def print_rankings_key_histogram(rankings):
     keys = [
         "ever_drawn_win_rate",
@@ -255,14 +192,12 @@ def get_graded_rankings(set_handle: str, start_date: str, args):
 
     for arena_id, rankings in rankings_by_arena_id.items():
         rankings["ever_drawn_score"] = None
-        rankings["ever_drawn_grade"] = None
         if not rankings["color"] and has_card_type(rankings, "Land"):
             for card_type in rankings["types"]:
                 rankings["color"] = land_string_to_colors(card_type)
 
         if rankings["ever_drawn_win_rate"]:
             rankings["ever_drawn_score"] = normal_distribution.cdf(rankings["ever_drawn_win_rate"]) * 100
-            rankings["ever_drawn_grade"] = get_grade_for_score(rankings["ever_drawn_score"])
 
     return rankings_by_arena_id
 
@@ -277,7 +212,7 @@ def print_rankings(rankings: list, insert_space_at_line: int = 0):
             format_color_id_emoji(ranking["color"]),
             rarity_to_emoji(ranking["rarity"]),
             ranking["name"],
-            grade_color_string(ranking["ever_drawn_grade"]),
+            score_to_grade_string(ranking["ever_drawn_score"]),
             f"{win_rate:.2f}",
             " ".join(ranking["types"]),
         ))
