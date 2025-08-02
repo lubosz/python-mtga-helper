@@ -52,5 +52,5 @@ Detailed game logs need to be enabled in
 
 ## Screenshots
 
-![screenshot_color_pair_pool.png](doc/screenshot_color_pair_pool.png)
-![screenshot_color_pair_ranks.png](doc/screenshot_color_pair_ranks.png)
+![screenshot_color_pair_pool.png](https://raw.githubusercontent.com/lubosz/python-mtga-helper/main/doc/screenshot_color_pair_pool.png)
+![screenshot_color_pair_ranks.png](https://raw.githubusercontent.com/lubosz/python-mtga-helper/main/doc/screenshot_color_pair_ranks.png)
