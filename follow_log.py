@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+from enum import StrEnum
 from pathlib import Path
 import json
 import pprint
@@ -8,10 +9,48 @@ from tabulate import tabulate
 import requests
 from IPython import embed
 from urllib.parse import urlencode
+import numpy as np
+
+from normal_distribution import NormalDistribution
 
 CACHE_DIR = Path("cache")
 CACHE_DIR_17LANDS = CACHE_DIR / "17lands"
 CACHE_DIR_17LANDS.mkdir(parents=True, exist_ok=True)
+
+class Grade(StrEnum):
+    A_PLUS = "A+"
+    A = "A"
+    A_MINUS = "A-"
+    B_PLUS = "B+"
+    B = "B"
+    B_MINUS = "B-"
+    C_PLUS = "C+"
+    C = "C"
+    C_MINUS = "C-"
+    D_PLUS = "D+"
+    D = "D"
+    D_MINUS = "D-"
+    F = "F"
+
+
+MIN_GAMES_DRAWN_FOR_INFERENCE = 100
+MIN_GAMES_DRAWN = 500
+
+GRADE_THRESHOLDS = [
+  [Grade.A_PLUS, 99],
+  [Grade.A, 95],
+  [Grade.A_MINUS, 90],
+  [Grade.B_PLUS, 85],
+  [Grade.B, 76],
+  [Grade.B_MINUS, 68],
+  [Grade.C_PLUS, 57],
+  [Grade.C, 45],
+  [Grade.C_MINUS, 36],
+  [Grade.D_PLUS, 27],
+  [Grade.D, 17],
+  [Grade.D_MINUS, 5],
+  [Grade.F, 0],
+]
 
 def print_sealed_course_info(course: dict):
     pool = course["CardPool"]
@@ -179,11 +218,58 @@ def main():
     #
     # print_sealed_course_info(sealed_courses[0])
 
-    eoe_rankings = pull_17lands("eoe", "PremierDraft", "2025-07-29", "2025-08-01")
+    eoe_rankings = pull_17lands("eoe",
+                                "PremierDraft",
+                                "2025-07-29",
+                                "2025-08-01")
     rankings_by_arena_id = {}
+
+    arena_id_to_win_rates = {}
+
+    histogram = {
+        "all": 0,
+        "ever_drawn_win_rate": 0,
+        "ever_drawn_game_count": 0,
+        "drawn_win_rate": 0,
+    }
+
     for card in eoe_rankings:
         rankings_by_arena_id[card["mtga_id"]] = card
-    pprint.pprint(rankings_by_arena_id)
+
+        if card["ever_drawn_win_rate"]:
+            histogram["ever_drawn_win_rate"] += 1
+            arena_id_to_win_rates[card["mtga_id"]] = card["ever_drawn_win_rate"]
+
+        if card["ever_drawn_game_count"]:
+            histogram["ever_drawn_game_count"] += 1
+
+        if card["drawn_win_rate"]:
+            histogram["drawn_win_rate"] += 1
+
+
+        histogram["all"] += 1
+
+    winrates_mean = np.mean(list(arena_id_to_win_rates.values()))
+    winrates_std = np.std(list(arena_id_to_win_rates.values()), ddof=1)
+
+    pprint.pprint(arena_id_to_win_rates)
+
+    print(winrates_mean)
+    print(winrates_std)
+
+    normal_distribution = NormalDistribution(float(winrates_mean), float(winrates_std))
+
+    # pprint.pprint(rankings_by_arena_id)
+
+    table = []
+    for arena_id, win_rate in arena_id_to_win_rates.items():
+        rankings = rankings_by_arena_id[arena_id]
+        table.append((arena_id, rankings["name"], win_rate))
+
+    print(tabulate(table))
+
+
+    # load_limited_grades()
 
 if __name__ == "__main__":
     main()
