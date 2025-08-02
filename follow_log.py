@@ -139,10 +139,7 @@ def land_string_to_colors(land_type_str: str):
             case "Forest":
                 found_colors.add("G")
 
-    if found_colors:
-        return "".join(list(found_colors))
-
-    return None
+    return "".join(list(found_colors))
 
 def are_card_colors_in_pair(card_colors: str, color_pair: str) -> bool:
     for card_color in card_colors:
@@ -150,12 +147,16 @@ def are_card_colors_in_pair(card_colors: str, color_pair: str) -> bool:
             return False
     return True
 
-def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list) -> dict:
+def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list, include_lands=False) -> dict:
     pool_rankings_by_color_pair = {}
     for color_pair in COLOR_PAIRS.keys():
         pool_rankings_by_color_pair[color_pair] = []
         for arena_id in pool:
             ranking = set_rankings_by_arena_id[arena_id]
+
+            if not include_lands and is_land(ranking):
+                continue
+
             if are_card_colors_in_pair(ranking["color"], color_pair):
                 pool_rankings_by_color_pair[color_pair].append(ranking)
 
@@ -199,8 +200,7 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
             rankings = pool_rankings_by_color_pair[color_pair]
             print(
                 i + 1,
-                color_id_to_emoji(color_pair[0]),
-                color_id_to_emoji(color_pair[1]),
+                color_id_to_emoji(color_pair[0]) + color_id_to_emoji(color_pair[1]),
                 COLOR_PAIRS[color_pair],
                 grade_color_string(get_grade_for_score(score)),
                 score,
@@ -213,8 +213,7 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
         rankings = pool_rankings_by_color_pair[color_pair]
         table.append((
             i + 1,
-            color_id_to_emoji(color_pair[0]),
-            color_id_to_emoji(color_pair[1]),
+            color_id_to_emoji(color_pair[0]) + color_id_to_emoji(color_pair[1]),
             COLOR_PAIRS[color_pair],
             grade_color_string(get_grade_for_score(score)),
             score,
@@ -380,6 +379,12 @@ def print_rankings_key_histogram(rankings):
 
     print(tabulate(histogram.items()))
 
+def is_land(ranking: dict) -> bool:
+    for card_type in ranking["types"]:
+        if "Land" in card_type:
+            return True
+    return False
+
 def get_graded_rankings(set_handle: str, start_date: str):
     end_date: str = datetime.now(timezone.utc).date().isoformat()
     eoe_rankings = pull_17lands(set_handle,
@@ -398,13 +403,9 @@ def get_graded_rankings(set_handle: str, start_date: str):
     for arena_id, rankings in rankings_by_arena_id.items():
         rankings["ever_drawn_score"] = None
         rankings["ever_drawn_grade"] = None
-
-        if not rankings["color"]:
+        if not rankings["color"] and is_land(rankings):
             for card_type in rankings["types"]:
-                if "Land" in card_type:
-                    found_colors = land_string_to_colors(card_type)
-                    if found_colors:
-                        rankings["color"] = found_colors
+                rankings["color"] = land_string_to_colors(card_type)
 
         if rankings["ever_drawn_win_rate"]:
             rankings["ever_drawn_score"] = normal_distribution.cdf(rankings["ever_drawn_win_rate"]) * 100
