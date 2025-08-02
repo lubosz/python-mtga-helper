@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+import os
+import time
 from enum import StrEnum
+from io import TextIOWrapper
 from pathlib import Path
 import json
+from typing import Iterator
+
 from tabulate import tabulate
 import requests
 from urllib.parse import urlencode
@@ -425,13 +430,60 @@ def print_rankings(rankings: list):
     table_sorted = sorted(table, key=lambda item: item[-1], reverse=True)
     print(tabulate(table_sorted))
 
+def follow(file: TextIOWrapper) -> Iterator[str]:
+
+    current_inode: int = os.fstat(file.fileno()).st_ino
+
+    while True:
+        line = file.readline()
+        if not line:
+            # Handle file recreation
+            inode = os.stat(file.name).st_ino
+            if inode != current_inode:
+                print("Log file recreated")
+                file.close()
+                file = open(file.name, "r")
+                current_inode = inode
+                continue
+
+            time.sleep(0.1)
+            continue
+        yield line.strip()
+
+def follow_player_log(player_log_path: Path):
+    with player_log_path.open('r') as player_log_file:
+        course_id = ""
+        for line in follow(player_log_file):
+            if "Version:" in line and line.count("/") == 2:
+                mtga_version = line.split("/")[1].strip()
+                print(f"Found game version {mtga_version}")
+            elif "DETAILED LOGS" in line:
+                detailed_log_status = line.split(":")[1].strip()
+                if detailed_log_status == "DISABLED":
+                    print("Detailed logs are disabled!")
+                    print("Enable `Options -> Account -> Detailed Logs (Plugin Support)`")
+                else:
+                    print(f"Detailed logs are {detailed_log_status}!")
+            elif "<== EventGetCoursesV2" in line:
+                course_id = line.strip().replace("<== EventGetCoursesV2(", "")
+                course_id = course_id.replace(")", "")
+                print(f"Found EventGetCoursesV2 query with id {course_id}")
+            elif course_id:
+                event_courses = json.loads(line)
+                courses = event_courses["Courses"]
+                print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
+                sealed_courses = get_sealed_courses(courses)
+                print(f"Found {len(sealed_courses)} ongoing sealed games.")
+                for course in sealed_courses:
+                    rankings_by_arena_id = get_graded_rankings()
+                    # print_rankings(list(rankings_by_arena_id.values()))
+                    print_sealed_course_info(rankings_by_arena_id, course)
+                course_id = ""
+
 def main():
     parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
     parser.add_argument('-l','--log-path', type=Path, help="Custom Player.log path")
     args = parser.parse_args()
-    rankings_by_arena_id = get_graded_rankings()
-
-    print_rankings(list(rankings_by_arena_id.values()))
 
     if args.log_path:
         player_log_path = args.log_path
@@ -445,12 +497,10 @@ def main():
             print("Could not find MTGA log file")
             return
 
-    player_log = get_player_log_lines(player_log_path)
-    courses = get_latest_event_courses(player_log)
-    sealed_courses = get_sealed_courses(courses)
-
-    for course in sealed_courses:
-        print_sealed_course_info(rankings_by_arena_id, course)
+    try:
+        follow_player_log(player_log_path)
+    except KeyboardInterrupt:
+        print("Bye")
 
 
 if __name__ == "__main__":
