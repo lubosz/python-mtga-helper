@@ -4,13 +4,11 @@ import argparse
 from enum import StrEnum
 from pathlib import Path
 import json
-import pprint
 from tabulate import tabulate
 import requests
 from urllib.parse import urlencode
 import numpy as np
 from termcolor import colored
-
 from normal_distribution import NormalDistribution
 
 CACHE_DIR = Path("cache")
@@ -34,10 +32,6 @@ class Grade(StrEnum):
     D_MINUS = "D-"
     F = "F"
 
-
-MIN_GAMES_DRAWN_FOR_INFERENCE = 100
-MIN_GAMES_DRAWN = 500
-
 GRADE_THRESHOLDS = {
     Grade.A_PLUS: 99,
     Grade.A: 95,
@@ -55,13 +49,10 @@ GRADE_THRESHOLDS = {
 }
 
 def grade_to_colored(grade: Grade):
-
     threshold: int = GRADE_THRESHOLDS[grade]
-
     green = int(255.0 * ( threshold / 100.0))
     red = 255 - green
     blue = 0
-
     return red, green, blue
 
 def color_id_to_colored(color_id: str):
@@ -79,7 +70,6 @@ def color_id_to_colored(color_id: str):
         case _:
             return "white"
 
-
 def color_id_to_emoji(color_id: str):
     match color_id:
         case "W":
@@ -95,7 +85,6 @@ def color_id_to_emoji(color_id: str):
         case _:
             return ""
 
-
 def rarity_to_emoji(rarity: str):
     match rarity:
         case "common":
@@ -109,15 +98,11 @@ def rarity_to_emoji(rarity: str):
         case _:
             return ""
 
-
 def grade_color_string(grade: Grade) -> str:
     if not grade:
         return ""
-
     color = grade_to_colored(grade)
-
     return colored(str(grade), color=color)
-
 
 def format_color_id_string(colors: list[str]) -> str:
     colored_colors = []
@@ -171,8 +156,6 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
         else:
             pool_id_by_count[pool_id] += 1
 
-    # pprint.pprint(pool_id_by_count)
-
     table = []
     for arena_id, count in pool_id_by_count.items():
         rankings = rankings_by_arena_id[arena_id]
@@ -182,37 +165,28 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
             win_rate = rankings["ever_drawn_win_rate"] * 100
 
         table.append((
-            # arena_id,
             rankings["name"],
             rarity_to_emoji(rankings["rarity"]),
             format_color_id_emoji(list(rankings["color"])),
             " ".join(rankings["types"]),
-            # rankings["grade"],
-            # rankings["score"],
-            # rankings["win_rate"],
             grade_color_string(rankings["ever_drawn_grade"]),
-            # rankings["ever_drawn_score"],
             f"{win_rate:.2f}"
         ))
-
-        # pprint.pprint(rankings)
 
     table_sorted = sorted(table, key=lambda item: item[-1], reverse=True)
     print(tabulate(table_sorted))
 
     # by color
-    ALL_COLORS = "WUBRG"
+    all_colors = "WUBRG"
     color_tuples = set()
 
-    for color_a in list(ALL_COLORS):
-        for color_b in list(ALL_COLORS):
+    for color_a in list(all_colors):
+        for color_b in list(all_colors):
             if color_a == color_b:
                 continue
             color_tuple = [color_a, color_b]
             color_tuple.sort()
             color_tuples.add(tuple(color_tuple))
-
-    print(f"We have {len(color_tuples)} tuples")
 
     tuples_by_score = {}
 
@@ -247,16 +221,11 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
                 color_tuple_scores.append(rankings["ever_drawn_score"])
 
             table.append((
-                # arena_id,
                 rankings["name"],
                 rarity_to_emoji(rankings["rarity"]),
                 format_color_id_emoji(list(rankings["color"])),
                 " ".join(rankings["types"]),
-                # rankings["grade"],
-                # rankings["score"],
-                # rankings["win_rate"],
                 grade_color_string(rankings["ever_drawn_grade"]),
-                # rankings["ever_drawn_score"],
                 f"{win_rate:.2f}"
             ))
 
@@ -266,7 +235,6 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
         pool_mean_color_tuple_scores = np.mean(color_tuple_scores)
         print(color_id_to_emoji(color_a), color_id_to_emoji(color_b), len(table), "/", 40 - 17, top23_mean_color_tuple_scores, pool_mean_color_tuple_scores)
         table_sorted = sorted(table, key=lambda item: item[-1], reverse=True)
-        # print(tabulate(table_sorted))
 
         tuples_by_score[(color_a, color_b)] = float(top23_mean_color_tuple_scores)
 
@@ -277,17 +245,11 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
                 table_spaced.append(())
         print(tabulate(table_spaced))
 
-        # pprint.pprint(tuples_by_score)
-
     tuples_by_score_sorted = sorted(tuples_by_score.items(), key=lambda item: item[-1], reverse=True)
-
-    # pprint.pprint(tuples_by_score_sorted)
 
     for color_tuple, score in tuples_by_score_sorted:
         color_a, color_b = color_tuple
         print(color_id_to_emoji(color_a), color_id_to_emoji(color_b), score)
-
-
 
 def pull_17lands(expansion: str, format_name: str, start: str, end: str):
     params = {
@@ -309,7 +271,6 @@ def pull_17lands(expansion: str, format_name: str, start: str, end: str):
         print("Using cache")
         with cache_file.open("r") as f:
             return json.loads(f.read())
-
 
 def get_log_path() -> Path:
     steam_path = Path.home() / ".local/share/Steam"
@@ -337,7 +298,6 @@ def get_log_path() -> Path:
 
     return player_log_path
 
-
 def get_player_log_lines() -> list[str]:
     player_log_path = get_log_path()
     with player_log_path.open("r") as f:
@@ -349,11 +309,6 @@ def get_latest_event_courses(log_lines: list[str]) -> list:
     latest_event_courses_id = ""
 
     for i, line in enumerate(log_lines):
-        # if "InventoryInfo" in line:
-        #     data = json.loads(line)
-        #     with Path("InventoryInfo.json").open("w") as f:
-        #         f.write(line)
-
         if "<== EventGetCoursesV2" in line:
             course_id = line.strip().replace("<== EventGetCoursesV2(", "")
             course_id = course_id.replace(")", "")
@@ -361,11 +316,7 @@ def get_latest_event_courses(log_lines: list[str]) -> list:
             event_courses[course_id] = json.loads(course_json)
             courses = event_courses[course_id]["Courses"]
             print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
-
             latest_event_courses_id = course_id
-
-    # with Path("CoursesV2.json").open("w") as f:
-    #     f.write(json.dumps(event_courses))
 
     if not event_courses:
         print("Did not find any event courses.")
@@ -377,7 +328,6 @@ def print_courses(courses: list):
     table = []
 
     for course in courses:
-
         wins = "N/A"
         if "CurrentWins" in course:
             wins = course["CurrentWins"]
@@ -393,20 +343,16 @@ def print_courses(courses: list):
             deck_name = summary["Name"]
 
         attribs = {}
-
         for attrib in summary["Attributes"]:
             k = attrib["name"]
             v = attrib["value"]
             attribs[k] = v
-
-        # pprint.pprint(attribs)
 
         event_format = "N/A"
         if attribs:
             event_format = attribs["Format"]
 
         row = (
-            # course["CourseId"],
             deck_name,
             course["InternalEventName"],
             event_format,
@@ -416,7 +362,6 @@ def print_courses(courses: list):
         table.append(row)
 
     print(tabulate(table, headers=(
-        # "ID",
         "Deck Name",
         "Event",
         "Format",
@@ -531,7 +476,6 @@ def main():
         return
 
     courses = get_latest_event_courses(player_log)
-    # print_courses(courses)
     sealed_courses = get_sealed_courses(courses)
 
     for course in sealed_courses:
