@@ -2,29 +2,26 @@
 
 import argparse
 import colorsys
-import os
-import time
+import json
 from datetime import timezone, datetime
 from enum import StrEnum
-from io import TextIOWrapper
 from pathlib import Path
-import json
-from typing import Iterator
-
-from tabulate import tabulate
-import requests
 from urllib.parse import urlencode
+
+import requests
+from tabulate import tabulate
 import numpy as np
 from termcolor import colored
-from .normal_distribution import NormalDistribution
 from xdg_base_dirs import xdg_cache_home
+
+from mtga_helper.mtga_log import get_log_path, follow, print_courses, get_sealed_courses
+from mtga_helper.normal_distribution import NormalDistribution
 
 APP_NAME = "python-mtga-helper"
 CACHE_DIR = xdg_cache_home() / APP_NAME
 CACHE_DIR_17LANDS = CACHE_DIR / "17lands"
 CACHE_DIR_17LANDS.mkdir(parents=True, exist_ok=True)
 
-MTGA_STEAM_APP_ID = 2141910
 LIMITED_DECK_SIZE = 40
 
 class Grade(StrEnum):
@@ -267,110 +264,6 @@ def pull_17lands(expansion: str, format_name: str, start: str, end: str):
         with cache_file.open("r") as f:
             return json.loads(f.read())
 
-def get_log_path() -> Path:
-    steam_path = Path.home() / ".local/share/Steam"
-    if not steam_path.exists():
-        raise RuntimeError("Could not find user steam path.")
-
-    mtga_compatibility_data_path = steam_path / f"steamapps/compatdata/{MTGA_STEAM_APP_ID}"
-    if not mtga_compatibility_data_path.exists():
-        raise RuntimeError("Could not find MTGA compat data path.")
-
-    prefix_c_path = mtga_compatibility_data_path / "pfx/drive_c"
-    if not prefix_c_path.exists():
-        raise RuntimeError("Could not find proton prefix C path.")
-
-    PREFIX_USER_NAME = "steamuser"
-    mtga_app_data_path = prefix_c_path / f"users/{PREFIX_USER_NAME}/AppData/LocalLow/Wizards Of The Coast/MTGA"
-    if not mtga_app_data_path.exists():
-        raise RuntimeError("Could not find MTGA user data path.")
-
-    player_log_path = mtga_app_data_path / "Player.log"
-    if not player_log_path.exists():
-        raise RuntimeError("Could not find player log.")
-
-    print(f"Found MTGA log at {player_log_path}")
-
-    return player_log_path
-
-def get_player_log_lines(player_log_path: Path) -> list[str]:
-    with player_log_path.open("r") as f:
-        all_lines = f.readlines()
-    return all_lines
-
-def get_latest_event_courses(log_lines: list[str]) -> list:
-    event_courses = {}
-    latest_event_courses_id = ""
-
-    for i, line in enumerate(log_lines):
-        if "<== EventGetCoursesV2" in line:
-            course_id = line.strip().replace("<== EventGetCoursesV2(", "")
-            course_id = course_id.replace(")", "")
-            course_json = log_lines[i+1]
-            event_courses[course_id] = json.loads(course_json)
-            courses = event_courses[course_id]["Courses"]
-            print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
-            latest_event_courses_id = course_id
-
-    if not event_courses:
-        print("Did not find any event courses.")
-        return []
-
-    return event_courses[latest_event_courses_id]["Courses"]
-
-def print_courses(courses: list):
-    table = []
-
-    for course in courses:
-        wins = "N/A"
-        if "CurrentWins" in course:
-            wins = course["CurrentWins"]
-
-        losses = "N/A"
-        if "CurrentLosses" in course:
-            losses = course["CurrentLosses"]
-
-        summary = course["CourseDeckSummary"]
-
-        deck_name = "N/A"
-        if "Name" in summary:
-            deck_name = summary["Name"]
-
-        attribs = {}
-        for attrib in summary["Attributes"]:
-            k = attrib["name"]
-            v = attrib["value"]
-            attribs[k] = v
-
-        event_format = "N/A"
-        if attribs:
-            event_format = attribs["Format"]
-
-        row = (
-            deck_name,
-            course["InternalEventName"],
-            event_format,
-            len(course["CardPool"]),
-            wins, losses,
-        )
-        table.append(row)
-
-    print(tabulate(table, headers=(
-        "Deck Name",
-        "Event",
-        "Format",
-        "Pool Size",
-        "Wins",
-        "Losses",
-    )))
-
-def get_sealed_courses(courses: list) -> list:
-    sealed_courses = []
-    for course in courses:
-        if course["InternalEventName"].startswith("Sealed") and course["CardPool"]:
-            sealed_courses.append(course)
-    return sealed_courses
-
 def get_normal_distribution(rankings, key):
     win_rates = []
 
@@ -466,26 +359,6 @@ def print_rankings(rankings: list, insert_space_at_line: int = 0):
         table = table_spaced
 
     print(tabulate(table, headers=("", "", "Card", "", "Win %", "Type"), colalign=("right",)))
-
-def follow(file: TextIOWrapper) -> Iterator[str]:
-
-    current_inode: int = os.fstat(file.fileno()).st_ino
-
-    while True:
-        line = file.readline()
-        if not line:
-            # Handle file recreation
-            inode = os.stat(file.name).st_ino
-            if inode != current_inode:
-                print("Log file recreated")
-                file.close()
-                file = open(file.name, "r")
-                current_inode = inode
-                continue
-
-            time.sleep(0.1)
-            continue
-        yield line.strip()
 
 def follow_player_log(player_log_path: Path, args: argparse.Namespace):
     with player_log_path.open('r') as player_log_file:
