@@ -298,8 +298,7 @@ def get_log_path() -> Path:
 
     return player_log_path
 
-def get_player_log_lines() -> list[str]:
-    player_log_path = get_log_path()
+def get_player_log_lines(player_log_path: Path) -> list[str]:
     with player_log_path.open("r") as f:
         all_lines = f.readlines()
     return all_lines
@@ -409,7 +408,7 @@ def print_rankings_key_histogram(rankings):
 
     histogram["all"] = len(rankings)
 
-    pprint.pprint(histogram)
+    print(tabulate(histogram.items()))
 
 def get_graded_rankings():
     eoe_rankings = pull_17lands("eoe",
@@ -449,11 +448,9 @@ def get_graded_rankings():
     return rankings_by_arena_id
 
 def main():
-    # parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
-    # parser.add_argument('log_path', type=Path)
-    # args = parser.parse_args()
-    # print(args.log_path)
-
+    parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
+    parser.add_argument('-l','--log-path', type=Path, help="Custom Player.log path")
+    args = parser.parse_args()
     rankings_by_arena_id = get_graded_rankings()
 
     # table = []
@@ -470,12 +467,19 @@ def main():
     # print(tabulate(table))
     # load_limited_grades()
 
-    try:
-        player_log = get_player_log_lines()
-    except RuntimeError:
-        print("Could not find MTGA log file")
-        return
+    if args.log_path:
+        player_log_path = args.log_path
+        if not player_log_path.exists():
+            print(f"Can't find log file at {player_log_path}")
+            return
+    else:
+        try:
+            player_log_path = get_log_path()
+        except RuntimeError:
+            print("Could not find MTGA log file")
+            return
 
+    player_log = get_player_log_lines(player_log_path)
     courses = get_latest_event_courses(player_log)
     sealed_courses = get_sealed_courses(courses)
 
