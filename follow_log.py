@@ -422,12 +422,9 @@ def get_graded_rankings():
 
     print_rankings_key_histogram(eoe_rankings)
 
-    win_rate_normal_distribution = get_normal_distribution(eoe_rankings, "win_rate")
-    ever_drawn_win_rate_normal_distribution = get_normal_distribution(eoe_rankings, "ever_drawn_win_rate")
+    normal_distribution = get_normal_distribution(eoe_rankings, "ever_drawn_win_rate")
 
     for arena_id, rankings in rankings_by_arena_id.items():
-        rankings["score"] = None
-        rankings["grade"] = None
         rankings["ever_drawn_score"] = None
         rankings["ever_drawn_grade"] = None
 
@@ -438,14 +435,22 @@ def get_graded_rankings():
                     if found_colors:
                         rankings["color"] = found_colors
 
-        if rankings["win_rate"]:
-            rankings["score"] = win_rate_normal_distribution.cdf(rankings["win_rate"]) * 100
-            rankings["grade"] = get_grade_for_score(rankings["score"])
         if rankings["ever_drawn_win_rate"]:
-            rankings["ever_drawn_score"] = ever_drawn_win_rate_normal_distribution.cdf(rankings["ever_drawn_win_rate"]) * 100
+            rankings["ever_drawn_score"] = normal_distribution.cdf(rankings["ever_drawn_win_rate"]) * 100
             rankings["ever_drawn_grade"] = get_grade_for_score(rankings["ever_drawn_score"])
 
     return rankings_by_arena_id
+
+def print_rankings(rankings_by_arena_id: dict):
+    table = []
+    for arena_id, rankings in rankings_by_arena_id.items():
+        table.append((arena_id,
+                      rankings["name"],
+                      rankings["rarity"],
+                      rankings["ever_drawn_grade"],
+                      rankings["ever_drawn_score"],
+                      rankings["ever_drawn_win_rate"]))
+    print(tabulate(table))
 
 def main():
     parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
@@ -453,19 +458,7 @@ def main():
     args = parser.parse_args()
     rankings_by_arena_id = get_graded_rankings()
 
-    # table = []
-    # for arena_id, rankings in rankings_by_arena_id.items():
-    #     table.append((arena_id,
-    #                   rankings["name"],
-    #                   rankings["rarity"],
-    #                   rankings["grade"],
-    #                   rankings["score"],
-    #                   rankings["win_rate"],
-    #                   rankings["ever_drawn_grade"],
-    #                   rankings["ever_drawn_score"],
-    #                   rankings["ever_drawn_win_rate"]))
-    # print(tabulate(table))
-    # load_limited_grades()
+    print_rankings(rankings_by_arena_id)
 
     if args.log_path:
         player_log_path = args.log_path
