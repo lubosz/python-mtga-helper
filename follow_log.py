@@ -3,6 +3,7 @@
 import argparse
 import os
 import time
+from datetime import timezone, datetime
 from enum import StrEnum
 from io import TextIOWrapper
 from pathlib import Path
@@ -380,11 +381,12 @@ def print_rankings_key_histogram(rankings):
 
     print(tabulate(histogram.items()))
 
-def get_graded_rankings():
-    eoe_rankings = pull_17lands("eoe",
+def get_graded_rankings(set_handle: str, start_date: str):
+    end_date: str = datetime.now(timezone.utc).date().isoformat()
+    eoe_rankings = pull_17lands(set_handle,
                                 "PremierDraft",
-                                "2025-07-29",
-                                "2025-08-01")
+                                start_date,
+                                end_date)
     rankings_by_arena_id = {}
 
     for card in eoe_rankings:
@@ -477,7 +479,19 @@ def follow_player_log(player_log_path: Path):
                 sealed_courses = get_sealed_courses(courses)
                 print(f"Found {len(sealed_courses)} ongoing sealed games.")
                 for course in sealed_courses:
-                    rankings_by_arena_id = get_graded_rankings()
+
+                    event_name = course["InternalEventName"]
+                    print(f"Found sealed event {event_name}")
+
+                    event_name_split = event_name.split("_")
+                    assert len(event_name_split) == 3
+
+                    set_handle = event_name_split[1].lower()
+                    event_start_date_str = event_name_split[2]
+                    event_start_date = datetime.strptime(event_start_date_str, "%Y%m%d").date()
+                    print(f"Found event for set handle `{set_handle}` started {event_start_date}")
+
+                    rankings_by_arena_id = get_graded_rankings(set_handle, event_start_date.isoformat())
                     # print_rankings(list(rankings_by_arena_id.values()))
                     print_sealed_course_info(rankings_by_arena_id, course)
                 course_id = ""
