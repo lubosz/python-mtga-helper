@@ -114,11 +114,9 @@ def got_courses_cb(courses: list, args: argparse.Namespace):
         assert len(event_name_split) == 3
 
         set_handle = event_name_split[1].lower()
-        event_start_date_str = event_name_split[2]
-        event_start_date = datetime.strptime(event_start_date_str, "%Y%m%d").date()
-        print(f"Found event for set handle `{set_handle}` started {event_start_date}")
+        print(f"Found event for set handle `{set_handle}`")
 
-        rankings_by_arena_id = get_graded_rankings(set_handle, args.data_set, event_start_date.isoformat(), args)
+        rankings_by_arena_id = get_graded_rankings(set_handle, args.data_set, args)
 
         if args.verbose:
             print(f"== All Rankings for {set_handle.upper()} ==")

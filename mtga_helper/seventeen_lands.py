@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 
 import json
-from datetime import datetime, timezone
 from urllib.parse import urlencode
 
 import requests
@@ -18,12 +17,10 @@ CACHE_DIR = xdg_cache_home() / APP_NAME
 CACHE_DIR_17LANDS = CACHE_DIR / "17lands"
 CACHE_DIR_17LANDS.mkdir(parents=True, exist_ok=True)
 
-def query_17lands(expansion: str, format_name: str, start: str, end: str):
+def query_17lands(expansion: str, format_name: str):
     params = {
         "expansion": expansion,
         "format": format_name,
-        "start_date": start,
-        "end_date": end,
     }
     params_str = urlencode(params)
     cache_file = CACHE_DIR_17LANDS / f"{params_str}.json"
@@ -40,9 +37,8 @@ def query_17lands(expansion: str, format_name: str, start: str, end: str):
         with cache_file.open("r") as f:
             return json.loads(f.read())
 
-def get_graded_rankings(set_handle: str, format_name: str, start_date: str, args):
-    end_date: str = datetime.now(timezone.utc).date().isoformat()
-    set_rankings = query_17lands(set_handle, format_name, start_date, end_date)
+def get_graded_rankings(set_handle: str, format_name: str, args):
+    set_rankings = query_17lands(set_handle, format_name)
     rankings_by_arena_id = {}
     for ranking in set_rankings:
 
