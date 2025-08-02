@@ -156,25 +156,11 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
         else:
             pool_id_by_count[pool_id] += 1
 
-    table = []
+    # all colors
+    pool_rankings = []
     for arena_id, count in pool_id_by_count.items():
-        rankings = rankings_by_arena_id[arena_id]
-
-        win_rate = 0
-        if rankings["ever_drawn_win_rate"]:
-            win_rate = rankings["ever_drawn_win_rate"] * 100
-
-        table.append((
-            rankings["name"],
-            rarity_to_emoji(rankings["rarity"]),
-            format_color_id_emoji(list(rankings["color"])),
-            " ".join(rankings["types"]),
-            grade_color_string(rankings["ever_drawn_grade"]),
-            f"{win_rate:.2f}"
-        ))
-
-    table_sorted = sorted(table, key=lambda item: item[-1], reverse=True)
-    print(tabulate(table_sorted))
+        pool_rankings.append(rankings_by_arena_id[arena_id])
+    print_rankings(pool_rankings)
 
     # by color
     all_colors = "WUBRG"
@@ -441,16 +427,23 @@ def get_graded_rankings():
 
     return rankings_by_arena_id
 
-def print_rankings(rankings_by_arena_id: dict):
+def print_rankings(rankings: list):
     table = []
-    for arena_id, rankings in rankings_by_arena_id.items():
-        table.append((arena_id,
-                      rankings["name"],
-                      rankings["rarity"],
-                      rankings["ever_drawn_grade"],
-                      rankings["ever_drawn_score"],
-                      rankings["ever_drawn_win_rate"]))
-    print(tabulate(table))
+    for ranking in rankings:
+        win_rate = 0
+        if ranking["ever_drawn_win_rate"]:
+            win_rate = ranking["ever_drawn_win_rate"] * 100
+
+        table.append((
+            ranking["name"],
+            rarity_to_emoji(ranking["rarity"]),
+            format_color_id_emoji(list(ranking["color"])),
+            " ".join(ranking["types"]),
+            grade_color_string(ranking["ever_drawn_grade"]),
+            f"{win_rate:.2f}"
+        ))
+    table_sorted = sorted(table, key=lambda item: item[-1], reverse=True)
+    print(tabulate(table_sorted))
 
 def main():
     parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
@@ -458,7 +451,7 @@ def main():
     args = parser.parse_args()
     rankings_by_arena_id = get_graded_rankings()
 
-    print_rankings(rankings_by_arena_id)
+    print_rankings(list(rankings_by_arena_id.values()))
 
     if args.log_path:
         player_log_path = args.log_path
