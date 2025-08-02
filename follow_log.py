@@ -334,7 +334,7 @@ def get_player_log_lines() -> list[str]:
         all_lines = f.readlines()
     return all_lines
 
-def get_latest_event_courses(log_lines: list[str]):
+def get_latest_event_courses(log_lines: list[str]) -> list:
     event_courses = {}
     latest_event_courses_id = ""
 
@@ -356,6 +356,10 @@ def get_latest_event_courses(log_lines: list[str]):
 
     # with Path("CoursesV2.json").open("w") as f:
     #     f.write(json.dumps(event_courses))
+
+    if not event_courses:
+        print("Did not find any event courses.")
+        return []
 
     return event_courses[latest_event_courses_id]["Courses"]
 
@@ -514,7 +518,9 @@ def main():
     courses = get_latest_event_courses(player_log)
     # print_courses(courses)
     sealed_courses = get_sealed_courses(courses)
-    print_sealed_course_info(rankings_by_arena_id, sealed_courses[0])
+
+    for course in sealed_courses:
+        print_sealed_course_info(rankings_by_arena_id, course)
 
 
 if __name__ == "__main__":
