@@ -451,7 +451,7 @@ def print_rankings(rankings: list, insert_space_at_line: int = 0):
                 table_spaced.append(())
         table = table_spaced
 
-    print(tabulate(table))
+    print(tabulate(table, headers=("Card", "", "", "Type", "", "Winrate %")))
 
 def follow(file: TextIOWrapper) -> Iterator[str]:
 
