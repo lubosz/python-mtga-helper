@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import time
+import pprint
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Iterator
@@ -66,9 +67,10 @@ def get_sealed_courses(courses: list) -> list:
             sealed_courses.append(course)
     return sealed_courses
 
-def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_cb):
+def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_cb, bot_draft_cb):
     with player_log_path.open('r') as player_log_file:
         course_id = ""
+        bot_draft_status_id = ""
         for line in follow(player_log_file):
             if "Version:" in line and line.count("/") == 2:
                 mtga_version = line.split("/")[1].strip()
@@ -94,6 +96,21 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_c
 
                 courses_cb(courses, args)
                 course_id = ""
+            elif "<== BotDraftDraftStatus" in line:
+                bot_draft_status_id = line.strip().replace("<== BotDraftDraftStatus(", "")
+                bot_draft_status_id = bot_draft_status_id.replace(")", "")
+                print(f"Found BotDraftDraftStatus query with id {bot_draft_status_id}")
+            elif bot_draft_status_id:
+                bot_draft_status = json.loads(line)
+                bot_draft_status_payload = json.loads(bot_draft_status["Payload"])
+
+                if args.verbose:
+                    pprint.pprint(bot_draft_status_payload)
+
+                bot_draft_cb(bot_draft_status_payload, args)
+
+                bot_draft_status_id = ""
+
 
 def print_courses(courses: list):
     table = []

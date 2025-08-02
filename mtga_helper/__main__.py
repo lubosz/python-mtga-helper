@@ -123,6 +123,32 @@ def got_courses_cb(courses: list, args: argparse.Namespace):
             print_rankings(list(rankings_by_arena_id.values()))
         print_sealed_course_info(rankings_by_arena_id, course["CardPool"], args)
 
+def bot_draft_cb(draft_status: dict, args):
+    import pprint
+    pprint.pprint(draft_status)
+
+    event_name = draft_status["EventName"]
+
+    event_name_split = event_name.split("_")
+    assert len(event_name_split) == 3
+    set_handle = event_name_split[1].lower()
+
+    rankings_by_arena_id = get_graded_rankings(set_handle, args.data_set, args)
+
+    if args.verbose:
+        print(f"== All Rankings for {set_handle.upper()} ==")
+        print_rankings(list(rankings_by_arena_id.values()))
+
+    print(f"== Pack #{draft_status['PackNumber'] + 1} Pick #{draft_status['PickNumber'] + 1} ==")
+
+    pack_rankings = []
+    for arena_id_str in draft_status["DraftPack"]:
+        arena_id = int(arena_id_str)
+        pack_rankings.append(rankings_by_arena_id[arena_id])
+
+    print_rankings(pack_rankings)
+
+
 def main():
     parser = argparse.ArgumentParser(prog='mtga-helper',
                                      description='Analyse MTGA log for sealed pools with 17lands data.',
@@ -148,7 +174,7 @@ def main():
             return
 
     try:
-        follow_player_log(player_log_path, args, got_courses_cb)
+        follow_player_log(player_log_path, args, got_courses_cb, bot_draft_cb)
     except KeyboardInterrupt:
         print("Bye")
 
