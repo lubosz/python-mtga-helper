@@ -189,9 +189,7 @@ def count_creatures(rankings: list) -> tuple[int, int]:
     return creature_count, non_creature_count
 
 def color_pair_stats_row(i: int, color_pair: str, score_triple: tuple, rankings: list) -> tuple:
-
     creature_count, non_creature_count = count_creatures(rankings)
-
     mean, best, worst = score_triple
 
     return (
@@ -223,8 +221,24 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
     for i, (color_pair, score_triple) in enumerate(score_by_color_pair_sorted):
         if i < TOP_COLOR_PAIR_PRINT_COUNT:
             rankings = pool_rankings_by_color_pair[color_pair]
-            print(*color_pair_stats_row(i, color_pair, score_triple, rankings))
+
+            rank, pair_str, mean_grade, mean_score, grade_range, num_creatures, num_non_creatures, num_non_lands = \
+                color_pair_stats_row(i, color_pair, score_triple, rankings)
+
+            table = {
+                "Rank": rank,
+                f"Top {TARGET_NON_LAND_COUNT} Mean Grade": mean_grade,
+                f"Top {TARGET_NON_LAND_COUNT} Mean Score": f"{mean_score:.2f}%",
+                f"Top {TARGET_NON_LAND_COUNT} Grade Range": grade_range,
+                "Total Creatures": num_creatures,
+                "Total Non Creatures": num_non_creatures,
+                "Total Non Lands": num_non_lands,
+            }
+            print()
+            print(tabulate(table.items(), headers=(pair_str, "")))
+            print()
             print_rankings(rankings, insert_space_at_line=TARGET_NON_LAND_COUNT)
+            print()
 
     table = []
     for i, (color_pair, score_triple) in enumerate(score_by_color_pair_sorted):
