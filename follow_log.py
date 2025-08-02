@@ -17,8 +17,10 @@ from urllib.parse import urlencode
 import numpy as np
 from termcolor import colored
 from normal_distribution import NormalDistribution
+from xdg_base_dirs import xdg_cache_home
 
-CACHE_DIR = Path("cache")
+APP_NAME = "python-mtga-helper"
+CACHE_DIR = xdg_cache_home() / APP_NAME
 CACHE_DIR_17LANDS = CACHE_DIR / "17lands"
 CACHE_DIR_17LANDS.mkdir(parents=True, exist_ok=True)
 
@@ -254,12 +256,14 @@ def pull_17lands(expansion: str, format_name: str, start: str, end: str):
     cache_file = CACHE_DIR_17LANDS / f"{params_str}.json"
 
     if not cache_file.is_file():
+        print("Fetching 17lands data for", params_str)
         res = requests.get("https://www.17lands.com/card_ratings/data", params=params)
         res.raise_for_status()
         with cache_file.open("w") as f:
             f.write(res.text)
         return res.json()
     else:
+        print("Found 17land cache file at", cache_file)
         with cache_file.open("r") as f:
             return json.loads(f.read())
 
