@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mtga_helper"
+dynamic = ["version"]
+authors = [
+    { name = "Lubosz Sarnecki", email = "lubosz@gmail.com" }
+]
+maintainers = [
+    { name = "Lubosz Sarnecki", email = "lubosz@gmail.com" }
+]
+description = "CLI application to parse log files from MTGA and analyse them using 17lands data"
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.0"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Topic :: Games/Entertainment :: Turn Based Strategy",
+    "Environment :: Console",
+    "Intended Audience :: End Users/Desktop",
+]
+keywords = ["mtg", "mtga", "limited", "17lands", "game", "tcg"]
+dependencies = ["numpy", "termcolor", "tabulate", "requests"]
+
+[project.urls]
+"Homepage" = "https://github.com/lubosz/python-mtga-helper"
+"Bug Tracker" = "https://github.com/lubosz/python-mtga-helper/issues"
+
+[project.scripts]
+mtga-helper = "mtga_helper.__main__:main"
+
+[tool.hatch.version]
+path = "mtga_helper/__about__.py"
