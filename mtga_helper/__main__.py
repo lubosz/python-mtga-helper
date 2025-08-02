@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# python-mtga-helper
+# Copyright 2025 Lubosz Sarnecki <lubosz@gmail.com>
+# SPDX-License-Identifier: MIT
 
 import argparse
 import colorsys
@@ -14,6 +16,8 @@ import numpy as np
 from termcolor import colored
 from xdg_base_dirs import xdg_cache_home
 
+from mtga_helper.mtg import COLOR_PAIRS, LIMITED_DECK_SIZE, rarity_to_emoji, are_card_colors_in_pair, \
+    format_color_id_emoji, land_string_to_colors
 from mtga_helper.mtga_log import get_log_path, follow, print_courses, get_sealed_courses
 from mtga_helper.normal_distribution import NormalDistribution
 
@@ -21,8 +25,6 @@ APP_NAME = "python-mtga-helper"
 CACHE_DIR = xdg_cache_home() / APP_NAME
 CACHE_DIR_17LANDS = CACHE_DIR / "17lands"
 CACHE_DIR_17LANDS.mkdir(parents=True, exist_ok=True)
-
-LIMITED_DECK_SIZE = 40
 
 class Grade(StrEnum):
     A_PLUS = "A+"
@@ -62,86 +64,17 @@ def grade_to_colored(grade: Grade) -> tuple[int, int, int]:
     rgb_int = [int(c * 255) for c in rgb_float]
     return tuple[int, int, int](rgb_int)
 
-COLOR_PAIRS = {
-    # Allied
-    "WU": "Azorius",
-    "UB": "Dimir",
-    "BR": "Rakdos",
-    "RG": "Gruul",
-    "GW": "Selesnya",
-    # Enemy
-    "WB": "Orzhov",
-    "UR": "Izzet",
-    "BG": "Golgari",
-    "RW": "Boros",
-    "GU": "Simic"
-}
-
-def color_id_to_emoji(color_id: str):
-    match color_id:
-        case "W":
-            return "⚪"
-        case "B":
-            return "⚫"
-        case "U":
-            return "🔵"
-        case "R":
-            return "🔴"
-        case "G":
-            return "🟢"
-        case _:
-            return ""
-
-def rarity_to_emoji(rarity: str):
-    match rarity:
-        case "common":
-            return "⬛"
-        case "uncommon":
-            return "⬜"
-        case "rare":
-            return "🟨"
-        case "mythic":
-            return "🟥"
-        case _:
-            return ""
-
 def grade_color_string(grade: Grade) -> str:
     if not grade:
         return ""
     color = grade_to_colored(grade)
     return colored(str(grade), color=color)
 
-def format_color_id_emoji(colors: str):
-    return "".join(color_id_to_emoji(c) for c in colors)
-
 def get_grade_for_score(score: float):
     for grade, threshold in GRADE_THRESHOLDS.items():
         if score >= threshold:
             return grade
     return Grade.F
-
-def land_string_to_colors(land_type_str: str):
-    found_colors = set()
-    for chunk in land_type_str.split():
-        match chunk:
-            case "Plains":
-                found_colors.add("W")
-            case "Island":
-                found_colors.add("U")
-            case "Swamp":
-                found_colors.add("B")
-            case "Mountain":
-                found_colors.add("R")
-            case "Forest":
-                found_colors.add("G")
-
-    return "".join(list(found_colors))
-
-def are_card_colors_in_pair(card_colors: str, color_pair: str) -> bool:
-    for card_color in card_colors:
-        if card_color not in color_pair:
-            return False
-    return True
 
 def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list, include_lands=False) -> dict:
     pool_rankings_by_color_pair = {}
