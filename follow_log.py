@@ -23,6 +23,7 @@ CACHE_DIR_17LANDS = CACHE_DIR / "17lands"
 CACHE_DIR_17LANDS.mkdir(parents=True, exist_ok=True)
 
 MTGA_STEAM_APP_ID = 2141910
+LIMITED_DECK_SIZE = 40
 
 class Grade(StrEnum):
     A_PLUS = "A+"
@@ -170,12 +171,6 @@ def get_top_scores(rankings: list, score_key: str, card_count: int) -> tuple[flo
     best_of_top = top_scores[0]
     return float(np.mean(top_scores)), best_of_top, worst_of_top
 
-
-LIMITED_DECK_SIZE = 40
-TARGET_LAND_COUNT = 17
-TARGET_NON_LAND_COUNT = LIMITED_DECK_SIZE - TARGET_LAND_COUNT
-TOP_COLOR_PAIR_PRINT_COUNT = 3
-
 def count_creatures(rankings: list) -> tuple[int, int]:
     creature_count = 0
     non_creature_count = 0
@@ -203,7 +198,10 @@ def color_pair_stats_row(i: int, color_pair: str, score_triple: tuple, rankings:
         len(rankings),
     )
 
-def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
+def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list,
+                             target_land_count: int, top_color_pair_print_count: int):
+    target_non_land_count = LIMITED_DECK_SIZE - target_land_count
+
     # all colors
     pool_rankings = []
     for arena_id in pool:
@@ -214,12 +212,12 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
     pool_rankings_by_color_pair = split_pool_by_color_pair(set_rankings_by_arena_id, pool)
     scores_by_color_pair = {}
     for color_pair, rankings in pool_rankings_by_color_pair.items():
-        scores_by_color_pair[color_pair] = get_top_scores(rankings, "ever_drawn_score", TARGET_NON_LAND_COUNT)
+        scores_by_color_pair[color_pair] = get_top_scores(rankings, "ever_drawn_score", target_non_land_count)
 
     score_by_color_pair_sorted = sorted(scores_by_color_pair.items(), key=lambda item: item[-1], reverse=True)
 
     for i, (color_pair, score_triple) in enumerate(score_by_color_pair_sorted):
-        if i < TOP_COLOR_PAIR_PRINT_COUNT:
+        if i < top_color_pair_print_count:
             rankings = pool_rankings_by_color_pair[color_pair]
 
             rank, pair_str, mean_grade, mean_score, grade_range, num_creatures, num_non_creatures, num_non_lands = \
@@ -227,9 +225,9 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
 
             table = {
                 "Rank": rank,
-                f"Top {TARGET_NON_LAND_COUNT} Mean Grade": mean_grade,
-                f"Top {TARGET_NON_LAND_COUNT} Mean Score": f"{mean_score:.2f}%",
-                f"Top {TARGET_NON_LAND_COUNT} Grade Range": grade_range,
+                f"Top {target_non_land_count} Mean Grade": mean_grade,
+                f"Top {target_non_land_count} Mean Score": f"{mean_score:.2f}%",
+                f"Top {target_non_land_count} Grade Range": grade_range,
                 "Total Creatures": num_creatures,
                 "Total Non Creatures": num_non_creatures,
                 "Total Non Lands": num_non_lands,
@@ -237,7 +235,7 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
             print()
             print(tabulate(table.items(), headers=(pair_str, "")))
             print()
-            print_rankings(rankings, insert_space_at_line=TARGET_NON_LAND_COUNT)
+            print_rankings(rankings, insert_space_at_line=target_non_land_count)
             print()
 
     table = []
@@ -486,7 +484,8 @@ def follow(file: TextIOWrapper) -> Iterator[str]:
             continue
         yield line.strip()
 
-def follow_player_log(player_log_path: Path):
+def follow_player_log(player_log_path: Path,
+                      target_land_count: int, top_color_pair_print_count: int):
     with player_log_path.open('r') as player_log_file:
         course_id = ""
         for line in follow(player_log_file):
@@ -528,12 +527,15 @@ def follow_player_log(player_log_path: Path):
 
                     rankings_by_arena_id = get_graded_rankings(set_handle, event_start_date.isoformat())
                     # print_rankings(list(rankings_by_arena_id.values()))
-                    print_sealed_course_info(rankings_by_arena_id, course["CardPool"])
+                    print_sealed_course_info(rankings_by_arena_id, course["CardPool"],
+                                             target_land_count, top_color_pair_print_count)
                 course_id = ""
 
 def main():
     parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
-    parser.add_argument('-l','--log-path', type=Path, help="Custom Player.log path")
+    parser.add_argument('-l','--log-path', type=Path, help="Custom Player.log path (Default: auto)")
+    parser.add_argument('--land-count', type=int, help="Target Land count (Default: 17)", default=17)
+    parser.add_argument('--print-top-pairs', type=int, help="Top color pairs to print (Default: 3)", default=3)
     args = parser.parse_args()
 
     if args.log_path:
@@ -549,7 +551,7 @@ def main():
             return
 
     try:
-        follow_player_log(player_log_path)
+        follow_player_log(player_log_path, args.land_count, args.print_top_pairs)
     except KeyboardInterrupt:
         print("Bye")
 
