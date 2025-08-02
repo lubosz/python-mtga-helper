@@ -5,7 +5,8 @@ from pathlib import Path
 import json
 import pprint
 from tabulate import tabulate
-
+import requests
+from IPython import embed
 
 def print_sealed_course_info(course: dict):
     pool = course["CardPool"]
@@ -21,45 +22,47 @@ def print_sealed_course_info(course: dict):
 
     pprint.pprint(pool_id_by_count)
 
-def main():
-    # parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
 
-    # parser.add_argument('log_path', type=Path)
-    # args = parser.parse_args()
+def pull_17lands():
+    url = "https://www.17lands.com/card_ratings/data?expansion=eoe&format=PremierDraft&start_date=2025-07-29&end_date=2025-08-01"
+    res = requests.get(url)
+    embed()
 
-    # print(args.log_path)
-
+def get_log_path() -> Path:
     steam_path = Path.home() / ".local/share/Steam"
 
     if not steam_path.exists():
-        print("Could not find user steam path.")
+        raise RuntimeError("Could not find user steam path.")
 
     mtga_path = steam_path / "steamapps/compatdata/2141910"
 
     if not mtga_path.exists():
-        print("Could not find MTGA compat data path.")
+        raise RuntimeError("Could not find MTGA compat data path.")
 
     mtga_user_data_path = mtga_path / "pfx/drive_c/users/steamuser/AppData/LocalLow/Wizards Of The Coast/MTGA"
 
     if not mtga_user_data_path.exists():
-        print("Could not find MTGA user data path.")
+        raise RuntimeError("Could not find MTGA user data path.")
 
     player_log_path = mtga_user_data_path / "Player.log"
 
-    if not mtga_user_data_path.exists():
-        print("Could not find player log.")
+    if not player_log_path.exists():
+        raise RuntimeError("Could not find player log.")
 
-    print(player_log_path)
+    return player_log_path
 
-    # "InventoryInfo"
 
+def get_player_log_lines() -> list[str]:
+    player_log_path = get_log_path()
     with player_log_path.open("r") as f:
         all_lines = f.readlines()
+    return all_lines
 
+def get_latest_event_courses(log_lines: list[str]):
     event_courses = {}
     latest_event_courses_id = ""
 
-    for i, line in enumerate(all_lines):
+    for i, line in enumerate(log_lines):
         # if "InventoryInfo" in line:
         #     data = json.loads(line)
         #     with Path("InventoryInfo.json").open("w") as f:
@@ -68,32 +71,21 @@ def main():
         if "<== EventGetCoursesV2" in line:
             course_id = line.strip().replace("<== EventGetCoursesV2(", "")
             course_id = course_id.replace(")", "")
-            course_json = all_lines[i+1]
+            course_json = log_lines[i+1]
             event_courses[course_id] = json.loads(course_json)
             courses = event_courses[course_id]["Courses"]
             print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
 
             latest_event_courses_id = course_id
 
-        # if "Sealed_EOE_20250729" in line:
-
-        #     # print(line)
-
-        #     data = json.loads(line)
-
-        #     pprint.pprint(data)
-        #     return
-
-        #     print("yep")
-
-    # deck_id = "bbb4e823-ca07-43ca-af60-588496474819"
-
     # with Path("CoursesV2.json").open("w") as f:
     #     f.write(json.dumps(event_courses))
 
+    return event_courses[latest_event_courses_id]["Courses"]
+
+def print_courses(courses: list):
     table = []
 
-    courses = event_courses[latest_event_courses_id]["Courses"]
     for course in courses:
 
         wins = "N/A"
@@ -145,13 +137,23 @@ def main():
         "Wins",
         "Losses",
     )))
-    # print(data["DeckSummariesV2"])
 
-    # for summary in data["DeckSummariesV2"]:
-    #     if summary["DeckId"] == deck_id:
-    #         pprint.pprint(summary)
+def main():
+    # parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
+    # parser.add_argument('log_path', type=Path)
+    # args = parser.parse_args()
+    # print(args.log_path)
 
-    # pprint.pprint(data["Decks"][deck_id])
+
+    player_log = get_player_log_lines()
+    courses = get_latest_event_courses(player_log)
+    print_courses(courses)
+
+
+
+
+
+
 
 if __name__ == "__main__":
     main()
