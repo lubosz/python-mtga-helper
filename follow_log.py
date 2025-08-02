@@ -111,12 +111,8 @@ def grade_color_string(grade: Grade) -> str:
     color = grade_to_colored(grade)
     return colored(str(grade), color=color)
 
-def format_color_id_emoji(colors: list[str]):
-    colored_colors = []
-    colors.sort()
-    for color in colors:
-        colored_colors.append(color_id_to_emoji(color))
-    return " ".join(colored_colors)
+def format_color_id_emoji(colors: str):
+    return "".join(color_id_to_emoji(c) for c in colors)
 
 def get_grade_for_score(score: float):
     for grade, threshold in GRADE_THRESHOLDS.items():
@@ -196,7 +192,7 @@ def color_pair_stats_row(i: int, color_pair: str, score, rankings: list) -> tupl
 
     return (
         i + 1,
-        color_id_to_emoji(color_pair[0]) + color_id_to_emoji(color_pair[1]) + " " + COLOR_PAIRS[color_pair],
+        f"{format_color_id_emoji(color_pair)} {COLOR_PAIRS[color_pair]}",
         grade_color_string(get_grade_for_score(score)),
         score,
         len(rankings),
@@ -434,14 +430,14 @@ def print_rankings(rankings: list, insert_space_at_line: int = 0):
             win_rate = ranking["ever_drawn_win_rate"] * 100
 
         table.append((
-            ranking["name"],
+            format_color_id_emoji(ranking["color"]),
             rarity_to_emoji(ranking["rarity"]),
-            format_color_id_emoji(list(ranking["color"])),
-            " ".join(ranking["types"]),
+            ranking["name"],
             grade_color_string(ranking["ever_drawn_grade"]),
-            f"{win_rate:.2f}"
+            f"{win_rate:.2f}",
+            " ".join(ranking["types"]),
         ))
-    table = sorted(table, key=lambda item: item[-1], reverse=True)
+    table = sorted(table, key=lambda item: item[-2], reverse=True)
 
     if insert_space_at_line:
         table_spaced = []
@@ -451,7 +447,7 @@ def print_rankings(rankings: list, insert_space_at_line: int = 0):
                 table_spaced.append(())
         table = table_spaced
 
-    print(tabulate(table, headers=("Card", "", "", "Type", "", "Winrate %")))
+    print(tabulate(table, headers=("", "", "Card", "", "Win %", "Type"), colalign=("right",)))
 
 def follow(file: TextIOWrapper) -> Iterator[str]:
 
