@@ -122,6 +122,20 @@ def land_string_to_colors(land_type_str: str):
 
     return None
 
+def get_two_color_tuples() -> set[tuple]:
+    all_colors = "WUBRG"
+    color_tuples = set()
+
+    for color_a in list(all_colors):
+        for color_b in list(all_colors):
+            if color_a == color_b:
+                continue
+            color_tuple = [color_a, color_b]
+            color_tuple.sort()
+            color_tuples.add(tuple(color_tuple))
+
+    return color_tuples
+
 def print_sealed_course_info(rankings_by_arena_id, course: dict):
     pool = course["CardPool"]
 
@@ -141,20 +155,8 @@ def print_sealed_course_info(rankings_by_arena_id, course: dict):
     print_rankings(pool_rankings)
 
     # by color
-    all_colors = "WUBRG"
-    color_tuples = set()
-
-    for color_a in list(all_colors):
-        for color_b in list(all_colors):
-            if color_a == color_b:
-                continue
-            color_tuple = [color_a, color_b]
-            color_tuple.sort()
-            color_tuples.add(tuple(color_tuple))
-
     tuples_by_score = {}
-
-    for color_a, color_b in color_tuples:
+    for color_a, color_b in get_two_color_tuples():
         color_tuple_scores = []
 
         table = []
