@@ -2,6 +2,8 @@
 # Copyright 2025 Lubosz Sarnecki <lubosz@gmail.com>
 # SPDX-License-Identifier: MIT
 
+import argparse
+import json
 import os
 import time
 from io import TextIOWrapper
@@ -63,6 +65,35 @@ def get_sealed_courses(courses: list) -> list:
         if course["InternalEventName"].startswith("Sealed") and course["CardPool"]:
             sealed_courses.append(course)
     return sealed_courses
+
+def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_cb):
+    with player_log_path.open('r') as player_log_file:
+        course_id = ""
+        for line in follow(player_log_file):
+            if "Version:" in line and line.count("/") == 2:
+                mtga_version = line.split("/")[1].strip()
+                print(f"Found game version {mtga_version}")
+            elif "DETAILED LOGS" in line:
+                detailed_log_status = line.split(":")[1].strip()
+                if detailed_log_status == "DISABLED":
+                    print("Detailed logs are disabled!")
+                    print("Enable `Options -> Account -> Detailed Logs (Plugin Support)`")
+                else:
+                    print(f"Detailed logs are {detailed_log_status}!")
+            elif "<== EventGetCoursesV2" in line:
+                course_id = line.strip().replace("<== EventGetCoursesV2(", "")
+                course_id = course_id.replace(")", "")
+                print(f"Found EventGetCoursesV2 query with id {course_id}")
+            elif course_id:
+                event_courses = json.loads(line)
+                courses = event_courses["Courses"]
+                print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
+
+                if args.verbose:
+                    print_courses(courses)
+
+                courses_cb(courses, args)
+                course_id = ""
 
 def print_courses(courses: list):
     table = []

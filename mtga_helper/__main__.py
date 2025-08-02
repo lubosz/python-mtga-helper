@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 
 import argparse
-import json
 from datetime import datetime
 from pathlib import Path
 
@@ -12,7 +11,7 @@ import numpy as np
 
 from mtga_helper.grading import score_to_grade_string
 from mtga_helper.mtg import COLOR_PAIRS, LIMITED_DECK_SIZE, are_card_colors_in_pair, format_color_id_emoji
-from mtga_helper.mtga_log import get_log_path, follow, print_courses, get_sealed_courses
+from mtga_helper.mtga_log import get_log_path, get_sealed_courses, follow_player_log
 from mtga_helper.seventeen_lands import has_card_type, count_creatures, get_graded_rankings, print_rankings
 
 
@@ -103,54 +102,28 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list, args: a
         table.append(color_pair_stats_row(i, color_pair, score_triple, rankings))
     print(tabulate(table, headers=("", "Pair", "Mean", "Score", "Range", "Creatures", "Non Creatures", "Non Lands")))
 
-def follow_player_log(player_log_path: Path, args: argparse.Namespace):
-    with player_log_path.open('r') as player_log_file:
-        course_id = ""
-        for line in follow(player_log_file):
-            if "Version:" in line and line.count("/") == 2:
-                mtga_version = line.split("/")[1].strip()
-                print(f"Found game version {mtga_version}")
-            elif "DETAILED LOGS" in line:
-                detailed_log_status = line.split(":")[1].strip()
-                if detailed_log_status == "DISABLED":
-                    print("Detailed logs are disabled!")
-                    print("Enable `Options -> Account -> Detailed Logs (Plugin Support)`")
-                else:
-                    print(f"Detailed logs are {detailed_log_status}!")
-            elif "<== EventGetCoursesV2" in line:
-                course_id = line.strip().replace("<== EventGetCoursesV2(", "")
-                course_id = course_id.replace(")", "")
-                print(f"Found EventGetCoursesV2 query with id {course_id}")
-            elif course_id:
-                event_courses = json.loads(line)
-                courses = event_courses["Courses"]
-                print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
+def got_courses_cb(courses: list, args: argparse.Namespace):
+    sealed_courses = get_sealed_courses(courses)
+    print(f"Found {len(sealed_courses)} ongoing sealed games.")
+    for course in sealed_courses:
 
-                if args.verbose:
-                    print_courses(courses)
+        event_name = course["InternalEventName"]
+        print(f"Found sealed event {event_name}")
 
-                sealed_courses = get_sealed_courses(courses)
-                print(f"Found {len(sealed_courses)} ongoing sealed games.")
-                for course in sealed_courses:
+        event_name_split = event_name.split("_")
+        assert len(event_name_split) == 3
 
-                    event_name = course["InternalEventName"]
-                    print(f"Found sealed event {event_name}")
+        set_handle = event_name_split[1].lower()
+        event_start_date_str = event_name_split[2]
+        event_start_date = datetime.strptime(event_start_date_str, "%Y%m%d").date()
+        print(f"Found event for set handle `{set_handle}` started {event_start_date}")
 
-                    event_name_split = event_name.split("_")
-                    assert len(event_name_split) == 3
+        rankings_by_arena_id = get_graded_rankings(set_handle, event_start_date.isoformat(), args)
 
-                    set_handle = event_name_split[1].lower()
-                    event_start_date_str = event_name_split[2]
-                    event_start_date = datetime.strptime(event_start_date_str, "%Y%m%d").date()
-                    print(f"Found event for set handle `{set_handle}` started {event_start_date}")
-
-                    rankings_by_arena_id = get_graded_rankings(set_handle, event_start_date.isoformat(), args)
-
-                    if args.verbose:
-                        print(f"== All Rankings for {set_handle.upper()} ==")
-                        print_rankings(list(rankings_by_arena_id.values()))
-                    print_sealed_course_info(rankings_by_arena_id, course["CardPool"], args)
-                course_id = ""
+        if args.verbose:
+            print(f"== All Rankings for {set_handle.upper()} ==")
+            print_rankings(list(rankings_by_arena_id.values()))
+        print_sealed_course_info(rankings_by_arena_id, course["CardPool"], args)
 
 def main():
     parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
@@ -173,7 +146,7 @@ def main():
             return
 
     try:
-        follow_player_log(player_log_path, args)
+        follow_player_log(player_log_path, args, got_courses_cb)
     except KeyboardInterrupt:
         print("Bye")
 
