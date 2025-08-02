@@ -67,14 +67,16 @@ def color_id_to_colored(color_id: str):
     match color_id:
         case "W":
             return "light_yellow"
-        case "B":
-            return "light_grey"
         case "U":
             return "light_blue"
+        case "B":
+            return "light_grey"
         case "R":
             return "light_red"
         case "G":
             return "light_green"
+        case _:
+            return "white"
 
 
 def color_id_to_emoji(color_id: str):
@@ -89,6 +91,8 @@ def color_id_to_emoji(color_id: str):
             return "🔴"
         case "G":
             return "🟢"
+        case _:
+            return ""
 
 
 def rarity_to_emoji(rarity: str):
@@ -101,6 +105,8 @@ def rarity_to_emoji(rarity: str):
             return "🟨"
         case "mythic":
             return "🟥"
+        case _:
+            return ""
 
 
 def grade_color_string(grade: Grade) -> str:
