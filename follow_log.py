@@ -391,23 +391,24 @@ def get_normal_distribution(rankings, key):
     return NormalDistribution(float(winrates_mean), float(winrates_std))
 
 def print_rankings_key_histogram(rankings):
-    histogram = {
-        "all": 0,
-        "ever_drawn_win_rate": 0,
-        "ever_drawn_game_count": 0,
-        "drawn_win_rate": 0,
-        "win_rate": 0,
-    }
+    keys = [
+        "ever_drawn_win_rate",
+        "ever_drawn_game_count",
+        "drawn_win_rate",
+        "win_rate",
+    ]
+
+    histogram = {}
+    for k in keys:
+        histogram[k] = 0
+
     for card in rankings:
-        if card["ever_drawn_win_rate"]:
-            histogram["ever_drawn_win_rate"] += 1
-        if card["ever_drawn_game_count"]:
-            histogram["ever_drawn_game_count"] += 1
-        if card["drawn_win_rate"]:
-            histogram["drawn_win_rate"] += 1
-        if card["win_rate"]:
-            histogram["win_rate"] += 1
-        histogram["all"] += 1
+        for k in keys:
+            if k in card and card[k]:
+                histogram[k] += 1
+
+    histogram["all"] = len(rankings)
+
     pprint.pprint(histogram)
 
 def get_graded_rankings():
