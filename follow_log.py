@@ -62,6 +62,21 @@ def grade_to_colored(grade: Grade) -> tuple[int, int, int]:
     rgb_int = [int(c * 255) for c in rgb_float]
     return tuple[int, int, int](rgb_int)
 
+COLOR_PAIRS = {
+    # Allied
+    "WU": "Azorius",
+    "UB": "Dimir",
+    "BR": "Rakdos",
+    "RG": "Gruul",
+    "GW": "Selesnya",
+    # Enemy
+    "WB": "Orzhov",
+    "UR": "Izzet",
+    "BG": "Golgari",
+    "RW": "Boros",
+    "GU": "Simic"
+}
+
 def color_id_to_emoji(color_id: str):
     match color_id:
         case "W":
@@ -129,40 +144,26 @@ def land_string_to_colors(land_type_str: str):
 
     return None
 
-def get_color_pairs() -> set[tuple]:
-    all_colors = "WUBRG"
-    color_tuples = set()
-
-    for color_a in list(all_colors):
-        for color_b in list(all_colors):
-            if color_a == color_b:
-                continue
-            color_tuple = [color_a, color_b]
-            color_tuple.sort()
-            color_tuples.add(tuple(color_tuple))
-
-    return color_tuples
-
 def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list) -> dict:
     pool_rankings_by_color_pair = {}
-    for color_pair in get_color_pairs():
-        color_a, color_b = color_pair
+    for color_pair in COLOR_PAIRS.keys():
         pool_rankings_by_color_pair[color_pair] = []
 
         for arena_id in pool:
             ranking = set_rankings_by_arena_id[arena_id]
+
             colors = list(ranking["color"])
 
             if len(colors) > 1:
-                if color_a not in colors:
+                if color_pair[0] not in colors:
                     continue
-                if color_b not in colors:
+                if color_pair[1] not in colors:
                     continue
             elif len(colors) == 1:
                 relevant = False
-                if color_a in colors:
+                if color_pair[0] in colors:
                     relevant = True
-                if color_b in colors:
+                if color_pair[1] in colors:
                     relevant = True
                 if not relevant:
                     continue
@@ -198,6 +199,7 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
 
         print(color_id_to_emoji(color_pair[0]),
               color_id_to_emoji(color_pair[1]),
+              COLOR_PAIRS[color_pair],
               len(rankings), "/", 40 - 17,
               mean_scores_by_color_pair[color_pair])
 
