@@ -108,7 +108,7 @@ def print_rankings(rankings: list, insert_space_at_line: int = 0):
         table_spaced = []
         for i, row in enumerate(table):
             table_spaced.append(row)
-            if i == insert_space_at_line:
+            if i == insert_space_at_line - 1:
                 table_spaced.append(())
         table = table_spaced
 
