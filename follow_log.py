@@ -144,31 +144,20 @@ def land_string_to_colors(land_type_str: str):
 
     return None
 
+def are_card_colors_in_pair(card_colors: str, color_pair: str) -> bool:
+    for card_color in card_colors:
+        if card_color not in color_pair:
+            return False
+    return True
+
 def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list) -> dict:
     pool_rankings_by_color_pair = {}
     for color_pair in COLOR_PAIRS.keys():
         pool_rankings_by_color_pair[color_pair] = []
-
         for arena_id in pool:
             ranking = set_rankings_by_arena_id[arena_id]
-
-            colors = list(ranking["color"])
-
-            if len(colors) > 1:
-                if color_pair[0] not in colors:
-                    continue
-                if color_pair[1] not in colors:
-                    continue
-            elif len(colors) == 1:
-                relevant = False
-                if color_pair[0] in colors:
-                    relevant = True
-                if color_pair[1] in colors:
-                    relevant = True
-                if not relevant:
-                    continue
-
-            pool_rankings_by_color_pair[color_pair].append(ranking)
+            if are_card_colors_in_pair(ranking["color"], color_pair):
+                pool_rankings_by_color_pair[color_pair].append(ranking)
 
     return pool_rankings_by_color_pair
 
