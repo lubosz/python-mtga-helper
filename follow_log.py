@@ -333,6 +333,8 @@ def get_log_path() -> Path:
     if not player_log_path.exists():
         raise RuntimeError("Could not find player log.")
 
+    print(f"Found MTGA log at {player_log_path}")
+
     return player_log_path
 
 
@@ -522,7 +524,12 @@ def main():
     # print(tabulate(table))
     # load_limited_grades()
 
-    player_log = get_player_log_lines()
+    try:
+        player_log = get_player_log_lines()
+    except RuntimeError:
+        print("Could not find MTGA log file")
+        return
+
     courses = get_latest_event_courses(player_log)
     # print_courses(courses)
     sealed_courses = get_sealed_courses(courses)
