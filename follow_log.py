@@ -7,7 +7,6 @@ import json
 import pprint
 from tabulate import tabulate
 import requests
-from IPython import embed
 from urllib.parse import urlencode
 import numpy as np
 from termcolor import colored
@@ -17,6 +16,8 @@ from normal_distribution import NormalDistribution
 CACHE_DIR = Path("cache")
 CACHE_DIR_17LANDS = CACHE_DIR / "17lands"
 CACHE_DIR_17LANDS.mkdir(parents=True, exist_ok=True)
+
+MTGA_STEAM_APP_ID = 2141910
 
 class Grade(StrEnum):
     A_PLUS = "A+"
@@ -312,22 +313,23 @@ def pull_17lands(expansion: str, format_name: str, start: str, end: str):
 
 def get_log_path() -> Path:
     steam_path = Path.home() / ".local/share/Steam"
-
     if not steam_path.exists():
         raise RuntimeError("Could not find user steam path.")
 
-    mtga_path = steam_path / "steamapps/compatdata/2141910"
-
-    if not mtga_path.exists():
+    mtga_compatibility_data_path = steam_path / f"steamapps/compatdata/{MTGA_STEAM_APP_ID}"
+    if not mtga_compatibility_data_path.exists():
         raise RuntimeError("Could not find MTGA compat data path.")
 
-    mtga_user_data_path = mtga_path / "pfx/drive_c/users/steamuser/AppData/LocalLow/Wizards Of The Coast/MTGA"
+    prefix_c_path = mtga_compatibility_data_path / "pfx/drive_c"
+    if not prefix_c_path.exists():
+        raise RuntimeError("Could not find proton prefix C path.")
 
-    if not mtga_user_data_path.exists():
+    PREFIX_USER_NAME = "steamuser"
+    mtga_app_data_path = prefix_c_path / f"users/{PREFIX_USER_NAME}/AppData/LocalLow/Wizards Of The Coast/MTGA"
+    if not mtga_app_data_path.exists():
         raise RuntimeError("Could not find MTGA user data path.")
 
-    player_log_path = mtga_user_data_path / "Player.log"
-
+    player_log_path = mtga_app_data_path / "Player.log"
     if not player_log_path.exists():
         raise RuntimeError("Could not find player log.")
 
