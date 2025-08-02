@@ -154,7 +154,7 @@ def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list, include
         for arena_id in pool:
             ranking = set_rankings_by_arena_id[arena_id]
 
-            if not include_lands and is_land(ranking):
+            if not include_lands and has_card_type(ranking, "Land"):
                 continue
 
             if are_card_colors_in_pair(ranking["color"], color_pair):
@@ -178,6 +178,32 @@ TARGET_LAND_COUNT = 17
 TARGET_NON_LAND_COUNT = LIMITED_DECK_SIZE - TARGET_LAND_COUNT
 TOP_COLOR_PAIR_PRINT_COUNT = 3
 
+def count_creatures(rankings: list) -> tuple[int, int]:
+    creature_count = 0
+    non_creature_count = 0
+
+    for ranking in rankings:
+        if has_card_type(ranking, "Creature"):
+            creature_count += 1
+        else:
+            non_creature_count += 1
+
+    return creature_count, non_creature_count
+
+def color_pair_stats_row(i: int, color_pair: str, score, rankings: list) -> tuple:
+
+    creature_count, non_creature_count = count_creatures(rankings)
+
+    return (
+        i + 1,
+        color_id_to_emoji(color_pair[0]) + color_id_to_emoji(color_pair[1]) + " " + COLOR_PAIRS[color_pair],
+        grade_color_string(get_grade_for_score(score)),
+        score,
+        len(rankings),
+        creature_count,
+        non_creature_count
+    )
+
 def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
     # all colors
     pool_rankings = []
@@ -198,28 +224,14 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list):
     for i, (color_pair, score) in enumerate(score_by_color_pair_sorted):
         if i < TOP_COLOR_PAIR_PRINT_COUNT:
             rankings = pool_rankings_by_color_pair[color_pair]
-            print(
-                i + 1,
-                color_id_to_emoji(color_pair[0]) + color_id_to_emoji(color_pair[1]),
-                COLOR_PAIRS[color_pair],
-                grade_color_string(get_grade_for_score(score)),
-                score,
-                f"{len(rankings)} / {TARGET_NON_LAND_COUNT}",
-            )
+            print(*color_pair_stats_row(i, color_pair, score, rankings))
             print_rankings(rankings, insert_space_at_line=TARGET_NON_LAND_COUNT)
 
     table = []
     for i, (color_pair, score) in enumerate(score_by_color_pair_sorted):
         rankings = pool_rankings_by_color_pair[color_pair]
-        table.append((
-            i + 1,
-            color_id_to_emoji(color_pair[0]) + color_id_to_emoji(color_pair[1]),
-            COLOR_PAIRS[color_pair],
-            grade_color_string(get_grade_for_score(score)),
-            score,
-            f"{len(rankings)} / {TARGET_NON_LAND_COUNT}",
-        ))
-    print(tabulate(table))
+        table.append(color_pair_stats_row(i, color_pair, score, rankings))
+    print(tabulate(table, headers=("", "Pair", "Grade", "Score", "Non Lands", "Creatures", "Non Creatures")))
 
 def pull_17lands(expansion: str, format_name: str, start: str, end: str):
     params = {
@@ -379,9 +391,10 @@ def print_rankings_key_histogram(rankings):
 
     print(tabulate(histogram.items()))
 
-def is_land(ranking: dict) -> bool:
+
+def has_card_type(ranking: dict, type_name: str) -> bool:
     for card_type in ranking["types"]:
-        if "Land" in card_type:
+        if type_name in card_type:
             return True
     return False
 
@@ -403,7 +416,7 @@ def get_graded_rankings(set_handle: str, start_date: str):
     for arena_id, rankings in rankings_by_arena_id.items():
         rankings["ever_drawn_score"] = None
         rankings["ever_drawn_grade"] = None
-        if not rankings["color"] and is_land(rankings):
+        if not rankings["color"] and has_card_type(rankings, "Land"):
             for card_type in rankings["types"]:
                 rankings["color"] = land_string_to_colors(card_type)
 
