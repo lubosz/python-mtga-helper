@@ -6,17 +6,34 @@ The card grading is implemented according to [limited-grades](https://github.com
 Currently, only sealed pool analysis is implemented.
 
 ## Installation
+
+### PyPI
+```commandline
+pip install mtga-helper
+```
+
+### Arch Linux User Repository
+```commandline
+yay -S python-mtga-helper-git
+```
+
+### From source
 ```commandline
 git clone https://github.com/lubosz/python-mtga-helper.git
 cd python-mtga-helper
 virtualenv .env
 . .env/bin/activate
-pip install -r requirements.txt
-python -m mtga_helper
+pip install .
 ```
 
 ## Usage
 ```commandline
+usage: mtga-helper [-h] [-l LOG_PATH] [--land-count LAND_COUNT]
+                   [--print-top-pairs PRINT_TOP_PAIRS] [-v]
+                   [-d {PremierDraft,TradDraft,Sealed,TradSealed}]
+
+Analyse MTGA log for sealed pools with 17lands data.
+
 options:
   -h, --help            show this help message and exit
   -l, --log-path LOG_PATH
