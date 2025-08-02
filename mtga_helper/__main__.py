@@ -118,7 +118,7 @@ def got_courses_cb(courses: list, args: argparse.Namespace):
         event_start_date = datetime.strptime(event_start_date_str, "%Y%m%d").date()
         print(f"Found event for set handle `{set_handle}` started {event_start_date}")
 
-        rankings_by_arena_id = get_graded_rankings(set_handle, event_start_date.isoformat(), args)
+        rankings_by_arena_id = get_graded_rankings(set_handle, args.data_set, event_start_date.isoformat(), args)
 
         if args.verbose:
             print(f"== All Rankings for {set_handle.upper()} ==")
@@ -126,11 +126,14 @@ def got_courses_cb(courses: list, args: argparse.Namespace):
         print_sealed_course_info(rankings_by_arena_id, course["CardPool"], args)
 
 def main():
-    parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.')
-    parser.add_argument('-l','--log-path', type=Path, help="Custom Player.log path (Default: auto)")
-    parser.add_argument('--land-count', type=int, help="Target Land count (Default: 17)", default=17)
-    parser.add_argument('--print-top-pairs', type=int, help="Top color pairs to print (Default: 3)", default=3)
+    parser = argparse.ArgumentParser(prog='follow-log', description='Follow MTGA log.',
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('-l','--log-path', type=Path, help="Custom Player.log path")
+    parser.add_argument('--land-count', type=int, help="Target Land count", default=17)
+    parser.add_argument('--print-top-pairs', type=int, help="Top color pairs to print", default=3)
     parser.add_argument('-v', '--verbose', help="Log some intermediate steps", action="store_true")
+    parser.add_argument('-d', '--data-set', choices=['PremierDraft', 'TradDraft', 'Sealed', 'TradSealed'],
+                        help="Use specific 17lands format data set", default="PremierDraft")
     args = parser.parse_args()
 
     if args.log_path:

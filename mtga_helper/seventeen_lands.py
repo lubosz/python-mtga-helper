@@ -40,12 +40,9 @@ def query_17lands(expansion: str, format_name: str, start: str, end: str):
         with cache_file.open("r") as f:
             return json.loads(f.read())
 
-def get_graded_rankings(set_handle: str, start_date: str, args):
+def get_graded_rankings(set_handle: str, format_name: str, start_date: str, args):
     end_date: str = datetime.now(timezone.utc).date().isoformat()
-    set_rankings = query_17lands(set_handle,
-                                "PremierDraft",
-                                 start_date,
-                                 end_date)
+    set_rankings = query_17lands(set_handle, format_name, start_date, end_date)
     rankings_by_arena_id = {}
     for ranking in set_rankings:
 
