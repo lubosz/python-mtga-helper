@@ -9,10 +9,9 @@ from urllib.parse import urlencode
 import requests
 from tabulate import tabulate
 from xdg_base_dirs import xdg_cache_home
-from scipy.stats import norm
 
-from mtga_helper.grading import score_to_grade_string, get_mean_and_std_dev
-from mtga_helper.mtg import land_string_to_colors, format_color_id_emoji, rarity_to_emoji
+from mtga_helper.grading import score_to_grade_string, calculate_grade_scores
+from mtga_helper.mtg import format_color_id_emoji, rarity_to_emoji, land_string_to_colors
 
 APP_NAME = "python-mtga-helper"
 CACHE_DIR = xdg_cache_home() / APP_NAME
@@ -43,31 +42,24 @@ def query_17lands(expansion: str, format_name: str, start: str, end: str):
 
 def get_graded_rankings(set_handle: str, start_date: str, args):
     end_date: str = datetime.now(timezone.utc).date().isoformat()
-    eoe_rankings = query_17lands(set_handle,
+    set_rankings = query_17lands(set_handle,
                                 "PremierDraft",
                                  start_date,
                                  end_date)
     rankings_by_arena_id = {}
+    for ranking in set_rankings:
 
-    for card in eoe_rankings:
-        rankings_by_arena_id[card["mtga_id"]] = card
+        # Annotate colors on some lands
+        if not ranking["color"] and has_card_type(ranking, "Land"):
+            for card_type in ranking["types"]:
+                ranking["color"] = land_string_to_colors(card_type)
+
+        rankings_by_arena_id[ranking["mtga_id"]] = ranking
 
     if args.verbose:
-        print_rankings_key_histogram(eoe_rankings)
+        print_rankings_key_histogram(set_rankings)
 
-    winrates_mean, winrates_std = get_mean_and_std_dev(eoe_rankings, "ever_drawn_win_rate")
-
-    for arena_id, rankings in rankings_by_arena_id.items():
-        rankings["ever_drawn_score"] = None
-        if not rankings["color"] and has_card_type(rankings, "Land"):
-            for card_type in rankings["types"]:
-                rankings["color"] = land_string_to_colors(card_type)
-
-        if rankings["ever_drawn_win_rate"]:
-            rankings["ever_drawn_score"] = norm.cdf(rankings["ever_drawn_win_rate"],
-                                                    loc=winrates_mean, scale=winrates_std) * 100
-
-    return rankings_by_arena_id
+    return calculate_grade_scores(rankings_by_arena_id, set_rankings)
 
 def has_card_type(ranking: dict, type_name: str) -> bool:
     for card_type in ranking["types"]:

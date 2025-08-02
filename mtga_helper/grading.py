@@ -2,9 +2,13 @@
 # Copyright 2025 Lubosz Sarnecki <lubosz@gmail.com>
 # SPDX-License-Identifier: MIT
 
+# Heavily inspired by limited-grades by Youssef Moussaoui
+# See https://github.com/youssefm/limited-grades
+
 from enum import StrEnum
 import colorsys
 
+from scipy.stats import norm
 from termcolor import colored
 import numpy as np
 
@@ -61,12 +65,22 @@ def score_to_grade_string(score: float) -> str:
 
 def get_mean_and_std_dev(rankings, key) -> tuple[float, float]:
     win_rates = []
-
     for card in rankings:
         if card[key]:
             win_rates.append(card[key])
 
-    winrates_mean = np.mean(win_rates)
-    winrates_std = np.std(win_rates, ddof=1)
+    mean = np.mean(win_rates)
+    std = np.std(win_rates, ddof=1)
 
-    return float(winrates_mean), float(winrates_std)
+    return float(mean), float(std)
+
+def calculate_grade_scores(rankings_by_arena_id, set_rankings):
+    winrates_mean, win_rates_std = get_mean_and_std_dev(set_rankings, "ever_drawn_win_rate")
+
+    for arena_id, ranking in rankings_by_arena_id.items():
+        ranking["ever_drawn_score"] = None
+        if ranking["ever_drawn_win_rate"]:
+            cdf = norm.cdf(ranking["ever_drawn_win_rate"], loc=winrates_mean, scale=win_rates_std)
+            ranking["ever_drawn_score"] = cdf * 100
+
+    return rankings_by_arena_id
