@@ -55,21 +55,6 @@ def grade_to_colored(grade: Grade):
     blue = 0
     return red, green, blue
 
-def color_id_to_colored(color_id: str):
-    match color_id:
-        case "W":
-            return "light_yellow"
-        case "U":
-            return "light_blue"
-        case "B":
-            return "light_grey"
-        case "R":
-            return "light_red"
-        case "G":
-            return "light_green"
-        case _:
-            return "white"
-
 def color_id_to_emoji(color_id: str):
     match color_id:
         case "W":
@@ -103,13 +88,6 @@ def grade_color_string(grade: Grade) -> str:
         return ""
     color = grade_to_colored(grade)
     return colored(str(grade), color=color)
-
-def format_color_id_string(colors: list[str]) -> str:
-    colored_colors = []
-    colors.sort()
-    for color in colors:
-        colored_colors.append(colored(color, color_id_to_colored(color)))
-    return " ".join(colored_colors)
 
 def format_color_id_emoji(colors: list[str]):
     colored_colors = []
