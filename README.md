@@ -7,7 +7,7 @@ Currently, only sealed pool analysis is implemented.
 
 ## Installation
 ```commandline
-git clone git clone https://github.com/lubosz/python-mtga-helper.git
+git clone https://github.com/lubosz/python-mtga-helper.git
 cd python-mtga-helper
 virtualenv .env
 . .env/bin/activate
@@ -17,11 +17,6 @@ python -m mtga_helper
 
 ## Usage
 ```commandline
-usage: mtga-helper [-h] [-l LOG_PATH] [--land-count LAND_COUNT] [--print-top-pairs PRINT_TOP_PAIRS] [-v]
-                   [-d {PremierDraft,TradDraft,Sealed,TradSealed}]
-
-Follow MTGA log.
-
 options:
   -h, --help            show this help message and exit
   -l, --log-path LOG_PATH
