@@ -126,7 +126,8 @@ def got_courses_cb(courses: list, args: argparse.Namespace):
         print_sealed_course_info(rankings_by_arena_id, course["CardPool"], args)
 
 def main():
-    parser = argparse.ArgumentParser(prog='mtga-helper', description='Follow MTGA log.',
+    parser = argparse.ArgumentParser(prog='mtga-helper',
+                                     description='Analyse MTGA log for sealed pools with 17lands data.',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-l','--log-path', type=Path, help="Custom Player.log path")
     parser.add_argument('--land-count', type=int, help="Target Land count", default=17)
