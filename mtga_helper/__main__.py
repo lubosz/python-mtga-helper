@@ -124,9 +124,6 @@ def got_courses_cb(courses: list, args: argparse.Namespace):
         print_sealed_course_info(rankings_by_arena_id, course["CardPool"], args)
 
 def bot_draft_cb(draft_status: dict, args):
-    import pprint
-    pprint.pprint(draft_status)
-
     event_name = draft_status["EventName"]
 
     event_name_split = event_name.split("_")
@@ -139,27 +136,42 @@ def bot_draft_cb(draft_status: dict, args):
         print(f"== All Rankings for {set_handle.upper()} ==")
         print_rankings(list(rankings_by_arena_id.values()))
 
+    print()
+    print(f"== Pack #{draft_status['PackNumber'] + 1} Pick #{draft_status['PickNumber'] + 1} ==")
+    print()
 
     pack_rankings = []
     for arena_id_str in draft_status["DraftPack"]:
         arena_id = int(arena_id_str)
-        pack_rankings.append(rankings_by_arena_id[arena_id])
+        if arena_id in rankings_by_arena_id:
+            pack_rankings.append(rankings_by_arena_id[arena_id])
+        else:
+            print(f"ERROR: Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+            print(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
 
-    print()
-    print(f"== Pack #{draft_status['PackNumber'] + 1} Pick #{draft_status['PickNumber'] + 1} ==")
-    print()
-    print_rankings(pack_rankings)
+    if pack_rankings:
+        print_rankings(pack_rankings)
+    else:
+        print("No known cards in this pack... Is it only a land basic left?")
 
     if draft_status["PickedCards"]:
-        pool_rankings = []
-        for arena_id_str in draft_status["PickedCards"]:
-            arena_id = int(arena_id_str)
-            pool_rankings.append(rankings_by_arena_id[arena_id])
-
         print()
         print(f"== Pool ==")
         print()
-        print_rankings(pool_rankings)
+
+        pool_rankings = []
+        for arena_id_str in draft_status["PickedCards"]:
+            arena_id = int(arena_id_str)
+            if arena_id in rankings_by_arena_id:
+                pool_rankings.append(rankings_by_arena_id[arena_id])
+            else:
+                print(f"ERROR: Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+                print(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
+
+        if pool_rankings:
+            print_rankings(pool_rankings)
+        else:
+            print("Nothing to see here??")
 
 
 def main():
