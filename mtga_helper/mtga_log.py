@@ -71,6 +71,7 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_c
     with player_log_path.open('r') as player_log_file:
         course_id = ""
         bot_draft_status_id = ""
+        bot_draft_pick_id = ""
         for line in follow(player_log_file):
             if "Version:" in line and line.count("/") == 2:
                 mtga_version = line.split("/")[1].strip()
@@ -110,6 +111,21 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_c
                 bot_draft_cb(bot_draft_status_payload, args)
 
                 bot_draft_status_id = ""
+
+            elif "<== BotDraftDraftPick" in line:
+                bot_draft_pick_id = line.strip().replace("<== BotDraftDraftPick(", "")
+                bot_draft_pick_id = bot_draft_pick_id.replace(")", "")
+                print(f"Found BotDraftDraftPick query with id {bot_draft_pick_id}")
+            elif bot_draft_pick_id:
+                bot_draft_pick = json.loads(line)
+                bot_draft_pick_payload = json.loads(bot_draft_pick["Payload"])
+
+                if args.verbose:
+                    pprint.pprint(bot_draft_pick_payload)
+
+                bot_draft_cb(bot_draft_pick_payload, args)
+
+                bot_draft_pick_id = ""
 
 
 def print_courses(courses: list):
