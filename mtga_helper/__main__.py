@@ -139,14 +139,27 @@ def bot_draft_cb(draft_status: dict, args):
         print(f"== All Rankings for {set_handle.upper()} ==")
         print_rankings(list(rankings_by_arena_id.values()))
 
-    print(f"== Pack #{draft_status['PackNumber'] + 1} Pick #{draft_status['PickNumber'] + 1} ==")
 
     pack_rankings = []
     for arena_id_str in draft_status["DraftPack"]:
         arena_id = int(arena_id_str)
         pack_rankings.append(rankings_by_arena_id[arena_id])
 
+    print()
+    print(f"== Pack #{draft_status['PackNumber'] + 1} Pick #{draft_status['PickNumber'] + 1} ==")
+    print()
     print_rankings(pack_rankings)
+
+    if draft_status["PickedCards"]:
+        pool_rankings = []
+        for arena_id_str in draft_status["PickedCards"]:
+            arena_id = int(arena_id_str)
+            pool_rankings.append(rankings_by_arena_id[arena_id])
+
+        print()
+        print(f"== Pool ==")
+        print()
+        print_rankings(pool_rankings)
 
 
 def main():
