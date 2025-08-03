@@ -124,6 +124,8 @@ def got_courses_cb(courses: list, args: argparse.Namespace):
         print_sealed_course_info(rankings_by_arena_id, course["CardPool"], args)
 
 def bot_draft_cb(draft_status: dict, args):
+    target_non_land_count = LIMITED_DECK_SIZE - args.land_count
+
     event_name = draft_status["EventName"]
 
     event_name_split = event_name.split("_")
@@ -168,8 +170,23 @@ def bot_draft_cb(draft_status: dict, args):
                 print(f"ERROR: Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
                 print(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
 
+        creature_count, non_creature_count = count_creatures(pool_rankings)
+        mean, best, worst = get_top_scores(pool_rankings, "ever_drawn_score", target_non_land_count)
+
+        table = {
+            f"Top {target_non_land_count} Mean Grade": score_to_grade_string(mean),
+            f"Top {target_non_land_count} Mean Score": f"{best:.2f}%",
+            f"Top {target_non_land_count} Grade Range": f"{score_to_grade_string(best)} - {score_to_grade_string(worst)}",
+            "Total Creatures": creature_count,
+            "Total Non Creatures": non_creature_count,
+            "Total Cards": len(draft_status["PickedCards"]),
+        }
+        print()
+        print(tabulate(table.items()))
+        print()
+
         if pool_rankings:
-            print_rankings(pool_rankings)
+            print_rankings(pool_rankings, insert_space_at_line=target_non_land_count)
         else:
             print("Nothing to see here??")
 

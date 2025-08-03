@@ -95,7 +95,7 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_c
                 if args.verbose:
                     print_courses(courses)
 
-                courses_cb(courses, args)
+                # courses_cb(courses, args)
                 course_id = ""
             elif "<== BotDraftDraftStatus" in line:
                 bot_draft_status_id = line.strip().replace("<== BotDraftDraftStatus(", "")
