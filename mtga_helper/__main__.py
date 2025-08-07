@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 import argparse
+import json
 from pathlib import Path
 
 from tabulate import tabulate
@@ -101,7 +102,8 @@ def print_sealed_course_info(set_rankings_by_arena_id: dict, pool: list, args: a
         table.append(color_pair_stats_row(i, color_pair, score_triple, rankings))
     print(tabulate(table, headers=("", "Pair", "Mean", "Score", "Range", "Creatures", "Non Creatures", "Non Lands")))
 
-def got_courses_cb(courses: list, args: argparse.Namespace):
+def got_courses_cb(event: dict, args: argparse.Namespace):
+    courses = event["Courses"]
     sealed_courses = get_sealed_courses(courses)
     print(f"Found {len(sealed_courses)} ongoing sealed games.")
     for course in sealed_courses:
@@ -122,9 +124,10 @@ def got_courses_cb(courses: list, args: argparse.Namespace):
             print_rankings(list(rankings_by_arena_id.values()))
         print_sealed_course_info(rankings_by_arena_id, course["CardPool"], args)
 
-def bot_draft_cb(draft_status: dict, args):
+def bot_draft_cb(event: dict, args):
     target_non_land_count = LIMITED_DECK_SIZE - args.land_count
 
+    draft_status = json.loads(event["Payload"])
     event_name = draft_status["EventName"]
 
     event_name_split = event_name.split("_")
@@ -215,7 +218,12 @@ def main():
             return
 
     try:
-        follow_player_log(player_log_path, args, got_courses_cb, bot_draft_cb)
+        log_callbacks = {
+            "EventGetCoursesV2": got_courses_cb,
+            "BotDraftDraftStatus": bot_draft_cb,
+            "BotDraftDraftPick": bot_draft_cb,
+        }
+        follow_player_log(player_log_path, args, log_callbacks)
     except KeyboardInterrupt:
         print("Bye")
 

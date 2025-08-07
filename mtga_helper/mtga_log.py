@@ -5,8 +5,8 @@
 import argparse
 import json
 import os
+import re
 import time
-import pprint
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Iterator
@@ -67,26 +67,15 @@ def get_sealed_courses(courses: list) -> list:
             sealed_courses.append(course)
     return sealed_courses
 
-def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_cb, bot_draft_cb):
+def follow_player_log(player_log_path: Path, args: argparse.Namespace, log_callbacks):
     with player_log_path.open('r') as player_log_file:
         next_line_event = ""
         for line in follow(player_log_file):
             if next_line_event:
-                line_json = json.loads(line)
-                match next_line_event:
-                    case "EventGetCoursesV2":
-                        courses = line_json["Courses"]
-                        print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
-                        if args.verbose:
-                            print_courses(courses)
-                        courses_cb(courses, args)
-                    case "BotDraftDraftStatus" | "BotDraftDraftPick":
-                        bot_draft_status_payload = json.loads(line_json["Payload"])
-                        if args.verbose:
-                            pprint.pprint(bot_draft_status_payload)
-                        bot_draft_cb(bot_draft_status_payload, args)
-                    case _:
-                        pass
+                if next_line_event in log_callbacks:
+                    log_callbacks[next_line_event](json.loads(line), args)
+                # else:
+                #     print(f"Unhandled json line {next_line_event}")
                 next_line_event = ""
 
             elif "Version:" in line and line.count("/") == 2:
@@ -101,21 +90,11 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_c
                     print(f"Detailed logs are {detailed_log_status}!")
 
             # Find json lines
-            elif "<== EventGetCoursesV2" in line:
-                course_id = line.strip().replace("<== EventGetCoursesV2(", "")
-                course_id = course_id.replace(")", "")
-                print(f"Found EventGetCoursesV2 query with id {course_id}")
-                next_line_event = "EventGetCoursesV2"
-            elif "<== BotDraftDraftStatus" in line:
-                bot_draft_status_id = line.strip().replace("<== BotDraftDraftStatus(", "")
-                bot_draft_status_id = bot_draft_status_id.replace(")", "")
-                print(f"Found BotDraftDraftStatus query with id {bot_draft_status_id}")
-                next_line_event = "BotDraftDraftStatus"
-            elif "<== BotDraftDraftPick" in line:
-                bot_draft_pick_id = line.strip().replace("<== BotDraftDraftPick(", "")
-                bot_draft_pick_id = bot_draft_pick_id.replace(")", "")
-                print(f"Found BotDraftDraftPick query with id {bot_draft_pick_id}")
-                next_line_event = "BotDraftDraftPick"
+            elif line.startswith("<=="):
+                match = re.search(r"<== (\w+)\(([a-f0-9-]+)\)", line)
+                if match:
+                    next_line_event = match.group(1)
+                    # next_line_event_id = match.group(2)
 
 def print_courses(courses: list):
     table = []
