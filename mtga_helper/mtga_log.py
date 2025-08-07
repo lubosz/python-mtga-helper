@@ -69,11 +69,27 @@ def get_sealed_courses(courses: list) -> list:
 
 def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_cb, bot_draft_cb):
     with player_log_path.open('r') as player_log_file:
-        course_id = ""
-        bot_draft_status_id = ""
-        bot_draft_pick_id = ""
+        next_line_event = ""
         for line in follow(player_log_file):
-            if "Version:" in line and line.count("/") == 2:
+            if next_line_event:
+                line_json = json.loads(line)
+                match next_line_event:
+                    case "EventGetCoursesV2":
+                        courses = line_json["Courses"]
+                        print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
+                        if args.verbose:
+                            print_courses(courses)
+                        courses_cb(courses, args)
+                    case "BotDraftDraftStatus" | "BotDraftDraftPick":
+                        bot_draft_status_payload = json.loads(line_json["Payload"])
+                        if args.verbose:
+                            pprint.pprint(bot_draft_status_payload)
+                        bot_draft_cb(bot_draft_status_payload, args)
+                    case _:
+                        pass
+                next_line_event = ""
+
+            elif "Version:" in line and line.count("/") == 2:
                 mtga_version = line.split("/")[1].strip()
                 print(f"Found game version {mtga_version}")
             elif "DETAILED LOGS" in line:
@@ -83,50 +99,23 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, courses_c
                     print("Enable `Options -> Account -> Detailed Logs (Plugin Support)`")
                 else:
                     print(f"Detailed logs are {detailed_log_status}!")
+
+            # Find json lines
             elif "<== EventGetCoursesV2" in line:
                 course_id = line.strip().replace("<== EventGetCoursesV2(", "")
                 course_id = course_id.replace(")", "")
                 print(f"Found EventGetCoursesV2 query with id {course_id}")
-            elif course_id:
-                event_courses = json.loads(line)
-                courses = event_courses["Courses"]
-                print(f"Got EventGetCoursesV2 {course_id} with {len(courses)} courses")
-
-                if args.verbose:
-                    print_courses(courses)
-
-                courses_cb(courses, args)
-                course_id = ""
+                next_line_event = "EventGetCoursesV2"
             elif "<== BotDraftDraftStatus" in line:
                 bot_draft_status_id = line.strip().replace("<== BotDraftDraftStatus(", "")
                 bot_draft_status_id = bot_draft_status_id.replace(")", "")
                 print(f"Found BotDraftDraftStatus query with id {bot_draft_status_id}")
-            elif bot_draft_status_id:
-                bot_draft_status = json.loads(line)
-                bot_draft_status_payload = json.loads(bot_draft_status["Payload"])
-
-                if args.verbose:
-                    pprint.pprint(bot_draft_status_payload)
-
-                bot_draft_cb(bot_draft_status_payload, args)
-
-                bot_draft_status_id = ""
-
+                next_line_event = "BotDraftDraftStatus"
             elif "<== BotDraftDraftPick" in line:
                 bot_draft_pick_id = line.strip().replace("<== BotDraftDraftPick(", "")
                 bot_draft_pick_id = bot_draft_pick_id.replace(")", "")
                 print(f"Found BotDraftDraftPick query with id {bot_draft_pick_id}")
-            elif bot_draft_pick_id:
-                bot_draft_pick = json.loads(line)
-                bot_draft_pick_payload = json.loads(bot_draft_pick["Payload"])
-
-                if args.verbose:
-                    pprint.pprint(bot_draft_pick_payload)
-
-                bot_draft_cb(bot_draft_pick_payload, args)
-
-                bot_draft_pick_id = ""
-
+                next_line_event = "BotDraftDraftPick"
 
 def print_courses(courses: list):
     table = []
