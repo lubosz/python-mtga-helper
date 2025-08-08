@@ -20,7 +20,12 @@ def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list, include
     for color_pair in COLOR_PAIRS.keys():
         pool_rankings_by_color_pair[color_pair] = []
         for arena_id in pool:
-            ranking = set_rankings_by_arena_id[arena_id]
+            if arena_id in set_rankings_by_arena_id:
+                ranking = set_rankings_by_arena_id[arena_id]
+            else:
+                logger.warning(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+                logger.warning(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
+                continue
 
             if not include_lands and has_card_type(ranking, "Land"):
                 continue
@@ -57,10 +62,10 @@ def color_pair_stats_row(i: int, color_pair: str, score_triple: tuple, rankings:
         len(rankings),
     )
 
-def print_sealed_course_info(course: dict, args: argparse.Namespace):
+def print_limited_course_info(course: dict, args: argparse.Namespace):
     pool: list = course["CardPool"]
     event_name = course["InternalEventName"]
-    logger.info(f"Found sealed event {event_name}")
+    logger.info(f"Found limited event {event_name}")
 
     event_name_split = event_name.split("_")
     assert len(event_name_split) == 3
@@ -79,10 +84,14 @@ def print_sealed_course_info(course: dict, args: argparse.Namespace):
     # all colors
     pool_rankings = []
     for arena_id in pool:
-        pool_rankings.append(set_rankings_by_arena_id[arena_id])
+        if arena_id in set_rankings_by_arena_id:
+            pool_rankings.append(set_rankings_by_arena_id[arena_id])
+        else:
+            logger.warning(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+            logger.warning(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
 
     print()
-    print(f"== Sealed Pool ==")
+    print(f"== {event_name_split[0]} Pool ==")
     print()
     print_rankings(pool_rankings)
 
@@ -94,11 +103,17 @@ def print_sealed_course_info(course: dict, args: argparse.Namespace):
 
     score_by_color_pair_sorted = sorted(scores_by_color_pair.items(), key=lambda item: item[-1], reverse=True)
 
+    # Only print top 1 color pair for draft pools
+    if event_name_split[0] == "Sealed":
+        print_top_pairs = args.print_top_pairs
+    else:
+        print_top_pairs = 1
+
     print()
-    print(f"== Top {args.print_top_pairs} color pairs ==")
+    print(f"== Top {print_top_pairs} color pairs ==")
 
     for i, (color_pair, score_triple) in enumerate(score_by_color_pair_sorted):
-        if i < args.print_top_pairs:
+        if i < print_top_pairs:
             rankings = pool_rankings_by_color_pair[color_pair]
 
             rank, pair_str, mean_grade, mean_score, grade_range, num_creatures, num_non_creatures, num_non_lands = \
@@ -124,10 +139,11 @@ def print_sealed_course_info(course: dict, args: argparse.Namespace):
         rankings = pool_rankings_by_color_pair[color_pair]
         table.append(color_pair_stats_row(i, color_pair, score_triple, rankings))
 
-    print(f"== Color pair ranking ==")
-    print()
+    if event_name_split[0] == "Sealed":
+        print(f"== Color pair ranking ==")
+        print()
 
-    print(tabulate(table, headers=("", "Pair", "Mean", "Score", "Range", "Creatures", "Non Creatures", "Non Lands")))
+        print(tabulate(table, headers=("", "Pair", "Mean", "Score", "Range", "Creatures", "Non Creatures", "Non Lands")))
 
 def premier_draft_pick_cb(draft_status: dict, args):
     event_name = draft_status["EventId"]

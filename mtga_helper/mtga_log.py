@@ -64,12 +64,18 @@ def get_log_path() -> Path:
 
     return player_log_path
 
-def get_sealed_courses(courses: list) -> list:
-    sealed_courses = []
+SUPPORTED_LIMITED_FORMATS = {
+    "QuickDraft", "PremierDraft", "Sealed"
+}
+
+def get_limited_courses(courses: list) -> list:
+    limited_courses = []
     for course in courses:
-        if course["InternalEventName"].startswith("Sealed") and course["CardPool"]:
-            sealed_courses.append(course)
-    return sealed_courses
+        if course["CardPool"]:
+            for supported_format in SUPPORTED_LIMITED_FORMATS:
+                if course["InternalEventName"].startswith(supported_format):
+                    limited_courses.append(course)
+    return limited_courses
 
 def follow_player_log(player_log_path: Path, args: argparse.Namespace, start_callbacks, end_callbacks):
     with player_log_path.open('r') as player_log_file:
