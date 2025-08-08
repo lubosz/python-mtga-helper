@@ -4,6 +4,7 @@
 
 import argparse
 import json
+import logging
 import os
 import re
 import time
@@ -12,6 +13,8 @@ from pathlib import Path
 from typing import Iterator
 
 from tabulate import tabulate
+
+logger = logging.getLogger(__name__)
 
 MTGA_STEAM_APP_ID = 2141910
 
@@ -24,7 +27,7 @@ def follow(file: TextIOWrapper) -> Iterator[str]:
             # Handle file recreation
             inode = os.stat(file.name).st_ino
             if inode != current_inode:
-                print("Log file recreated")
+                logger.info("Log file recreated")
                 file.close()
                 file = open(file.name, "r")
                 current_inode = inode
@@ -56,7 +59,7 @@ def get_log_path() -> Path:
     if not player_log_path.exists():
         raise RuntimeError("Could not find player log.")
 
-    print(f"Found MTGA log at {player_log_path}")
+    logger.info(f"Found MTGA log at {player_log_path}")
 
     return player_log_path
 
@@ -74,20 +77,20 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, log_callb
             if next_line_event:
                 if next_line_event in log_callbacks:
                     log_callbacks[next_line_event](json.loads(line), args)
-                # else:
-                #     print(f"Unhandled json line {next_line_event}")
+                else:
+                    logger.debug(f"Unhandled json line {next_line_event}")
                 next_line_event = ""
 
             elif "Version:" in line and line.count("/") == 2:
                 mtga_version = line.split("/")[1].strip()
-                print(f"Found game version {mtga_version}")
+                logger.info(f"Found game version {mtga_version}")
             elif "DETAILED LOGS" in line:
                 detailed_log_status = line.split(":")[1].strip()
                 if detailed_log_status == "DISABLED":
-                    print("Detailed logs are disabled!")
-                    print("Enable `Options -> Account -> Detailed Logs (Plugin Support)`")
+                    logger.warning("Detailed logs are disabled!")
+                    logger.warning("Enable `Options -> Account -> Detailed Logs (Plugin Support)`")
                 else:
-                    print(f"Detailed logs are {detailed_log_status}!")
+                    logger.info(f"Detailed logs are {detailed_log_status}!")
 
             # Find json lines
             elif line.startswith("<=="):

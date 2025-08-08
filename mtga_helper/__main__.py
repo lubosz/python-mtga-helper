@@ -3,15 +3,20 @@
 # SPDX-License-Identifier: MIT
 
 import argparse
+import logging
 from pathlib import Path
+
+import coloredlogs
 
 from mtga_helper.limited import print_sealed_course_info, bot_draft_cb
 from mtga_helper.mtga_log import get_log_path, get_sealed_courses, follow_player_log
 
+logger = logging.getLogger(__name__)
+
 def got_courses_cb(event: dict, args: argparse.Namespace):
     courses = event["Courses"]
     sealed_courses = get_sealed_courses(courses)
-    print(f"Found {len(sealed_courses)} ongoing sealed games.")
+    logger.info(f"Found {len(sealed_courses)} ongoing sealed games.")
     for course in sealed_courses:
         print_sealed_course_info(course, args)
 
@@ -27,16 +32,25 @@ def main():
                         help="Use specific 17lands format data set", default="PremierDraft")
     args = parser.parse_args()
 
+    field_styles = coloredlogs.DEFAULT_FIELD_STYLES
+    field_styles["levelname"]["color"] = "white"
+    field_styles["funcName"] = {'color': 'blue'}
+    level_styles = coloredlogs.DEFAULT_LEVEL_STYLES
+    level_styles["debug"] = {'color': 'magenta', 'faint': True}
+    log_level = logging.DEBUG if args.verbose else logging.INFO
+    coloredlogs.install(fmt="%(levelname)s %(funcName)s %(message)s",
+                        field_styles=field_styles, level=log_level, level_styles=level_styles)
+
     if args.log_path:
         player_log_path = args.log_path
         if not player_log_path.exists():
-            print(f"Can't find log file at {player_log_path}")
+            logger.error(f"Can't find log file at {player_log_path}")
             return
     else:
         try:
             player_log_path = get_log_path()
         except RuntimeError:
-            print("Could not find MTGA log file")
+            logger.error("Could not find MTGA log file")
             return
 
     try:
@@ -47,7 +61,7 @@ def main():
         }
         follow_player_log(player_log_path, args, log_callbacks)
     except KeyboardInterrupt:
-        print("Bye")
+        logger.debug("Bye")
 
 
 if __name__ == "__main__":

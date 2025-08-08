@@ -25,7 +25,7 @@ classifiers = [
     "Intended Audience :: End Users/Desktop",
 ]
 keywords = ["mtg", "mtga", "limited", "17lands", "game", "tcg"]
-dependencies = ["numpy", "termcolor>=3.1.0", "tabulate", "requests", "xdg-base-dirs", "scipy", "wcwidth"]
+dependencies = ["numpy", "termcolor>=3.1.0", "tabulate", "requests", "xdg-base-dirs", "scipy", "wcwidth", "coloredlogs"]
 
 [project.urls]
 "Homepage" = "https://github.com/lubosz/python-mtga-helper"

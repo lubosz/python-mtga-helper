@@ -4,6 +4,7 @@
 
 import argparse
 import json
+import logging
 
 from tabulate import tabulate
 import numpy as np
@@ -11,6 +12,8 @@ import numpy as np
 from mtga_helper.grading import score_to_grade_string
 from mtga_helper.mtg import COLOR_PAIRS, LIMITED_DECK_SIZE, are_card_colors_in_pair, format_color_id_emoji
 from mtga_helper.seventeen_lands import has_card_type, count_creatures, get_graded_rankings, print_rankings
+
+logger = logging.getLogger(__name__)
 
 def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list, include_lands=False) -> dict:
     pool_rankings_by_color_pair = {}
@@ -57,13 +60,13 @@ def color_pair_stats_row(i: int, color_pair: str, score_triple: tuple, rankings:
 def print_sealed_course_info(course: dict, args: argparse.Namespace):
     pool: list = course["CardPool"]
     event_name = course["InternalEventName"]
-    print(f"Found sealed event {event_name}")
+    logger.info(f"Found sealed event {event_name}")
 
     event_name_split = event_name.split("_")
     assert len(event_name_split) == 3
 
     set_handle = event_name_split[1].lower()
-    print(f"Found event for set handle `{set_handle}`")
+    logger.info(f"Found event for set handle `{set_handle}`")
 
     set_rankings_by_arena_id = get_graded_rankings(set_handle, args.data_set, args)
 
@@ -142,13 +145,13 @@ def bot_draft_cb(event: dict, args):
         if arena_id in rankings_by_arena_id:
             pack_rankings.append(rankings_by_arena_id[arena_id])
         else:
-            print(f"ERROR: Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
-            print(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
+            logger.warning(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+            logger.warning(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
 
     if pack_rankings:
         print_rankings(pack_rankings)
     else:
-        print("No known cards in this pack... Is it only a land basic left?")
+        logger.warning("No known cards in this pack... Is it only a land basic left?")
 
     if draft_status["PickedCards"]:
         print()
@@ -182,4 +185,4 @@ def bot_draft_cb(event: dict, args):
         if pool_rankings:
             print_rankings(pool_rankings, insert_space_at_line=target_non_land_count)
         else:
-            print("Nothing to see here??")
+            logger.warning("Nothing to see here??")
