@@ -23,8 +23,8 @@ def split_pool_by_color_pair(set_rankings_by_arena_id: dict, pool: list, include
             if arena_id in set_rankings_by_arena_id:
                 ranking = set_rankings_by_arena_id[arena_id]
             else:
-                logger.warning(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
-                logger.warning(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
+                logger.debug(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+                logger.debug(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
                 continue
 
             if not include_lands and has_card_type(ranking, "Land"):
@@ -87,8 +87,8 @@ def print_limited_course_info(course: dict, args: argparse.Namespace):
         if arena_id in set_rankings_by_arena_id:
             pool_rankings.append(set_rankings_by_arena_id[arena_id])
         else:
-            logger.warning(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
-            logger.warning(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
+            logger.debug(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+            logger.debug(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
 
     print()
     print(f"== {event_name_split[0]} Pool ==")
@@ -164,8 +164,8 @@ def premier_draft_pick_cb(draft_status: dict, args):
         if arena_id in rankings_by_arena_id:
             pack_rankings.append(rankings_by_arena_id[arena_id])
         else:
-            logger.warning(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
-            logger.warning(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
+            logger.debug(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+            logger.debug(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
 
     if pack_rankings:
         print_rankings(pack_rankings)
@@ -199,8 +199,8 @@ def bot_draft_pick_cb(event: dict, args):
         if arena_id in rankings_by_arena_id:
             pack_rankings.append(rankings_by_arena_id[arena_id])
         else:
-            logger.warning(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
-            logger.warning(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
+            logger.debug(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+            logger.debug(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
 
     if pack_rankings:
         print_rankings(pack_rankings)
@@ -218,8 +218,8 @@ def bot_draft_pick_cb(event: dict, args):
             if arena_id in rankings_by_arena_id:
                 pool_rankings.append(rankings_by_arena_id[arena_id])
             else:
-                print(f"ERROR: Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
-                print(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
+                logger.debug(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+                logger.debug(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
 
         creature_count, non_creature_count = count_creatures(pool_rankings)
         mean, best, worst = get_top_scores(pool_rankings, "ever_drawn_score", target_non_land_count)
