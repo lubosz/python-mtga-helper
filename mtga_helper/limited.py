@@ -80,6 +80,10 @@ def print_sealed_course_info(course: dict, args: argparse.Namespace):
     pool_rankings = []
     for arena_id in pool:
         pool_rankings.append(set_rankings_by_arena_id[arena_id])
+
+    print()
+    print(f"== Sealed Pool ==")
+    print()
     print_rankings(pool_rankings)
 
     # by color
@@ -89,6 +93,9 @@ def print_sealed_course_info(course: dict, args: argparse.Namespace):
         scores_by_color_pair[color_pair] = get_top_scores(rankings, "ever_drawn_score", target_non_land_count)
 
     score_by_color_pair_sorted = sorted(scores_by_color_pair.items(), key=lambda item: item[-1], reverse=True)
+
+    print()
+    print(f"== Top {args.print_top_pairs} color pairs ==")
 
     for i, (color_pair, score_triple) in enumerate(score_by_color_pair_sorted):
         if i < args.print_top_pairs:
@@ -116,6 +123,10 @@ def print_sealed_course_info(course: dict, args: argparse.Namespace):
     for i, (color_pair, score_triple) in enumerate(score_by_color_pair_sorted):
         rankings = pool_rankings_by_color_pair[color_pair]
         table.append(color_pair_stats_row(i, color_pair, score_triple, rankings))
+
+    print(f"== Color pair ranking ==")
+    print()
+
     print(tabulate(table, headers=("", "Pair", "Mean", "Score", "Range", "Creatures", "Non Creatures", "Non Lands")))
 
 
