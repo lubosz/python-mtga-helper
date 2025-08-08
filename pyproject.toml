@@ -36,3 +36,8 @@ mtga-helper = "mtga_helper.__main__:main"
 
 [tool.hatch.version]
 path = "mtga_helper/__about__.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = [
+  ".env",
+]
