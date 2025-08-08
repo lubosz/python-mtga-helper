@@ -38,7 +38,7 @@ def query_17lands(expansion: str, format_name: str):
             f.write(res.text)
         return res.json()
     else:
-        logger.info(f"Found 17land cache file at {cache_file}")
+        logger.debug(f"Found 17land cache file at {cache_file}")
         with cache_file.open("r") as f:
             return json.loads(f.read())
 
