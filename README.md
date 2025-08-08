@@ -3,16 +3,18 @@
 CLI application to parse log files from MTGA and analyse them using [17lands](http://17lands.com) data.
 The card grading is implemented according to [limited-grades](https://github.com/youssefm/limited-grades).
 
-Currently, only sealed pool analysis is implemented.
+Currently, only sealed pool analysis and bot draft is implemented.
 
 ## Installation
 
 ### PyPI
+Install the [PyPI package](https://pypi.org/project/mtga-helper/).
 ```commandline
 pip install mtga-helper
 ```
 
 ### Arch Linux User Repository
+Install the [AUR package](https://aur.archlinux.org/packages/python-mtga-helper-git).
 ```commandline
 yay -S python-mtga-helper-git
 ```
@@ -52,5 +54,6 @@ Detailed game logs need to be enabled in
 
 ## Screenshots
 
-![screenshot_color_pair_pool.png](https://raw.githubusercontent.com/lubosz/python-mtga-helper/main/doc/screenshot_color_pair_pool.png)
-![screenshot_color_pair_ranks.png](https://raw.githubusercontent.com/lubosz/python-mtga-helper/main/doc/screenshot_color_pair_ranks.png)
+![screenshot color pair pool](https://raw.githubusercontent.com/lubosz/python-mtga-helper/main/doc/screenshot_color_pair_pool.png)
+![screenshot color pair ranks](https://raw.githubusercontent.com/lubosz/python-mtga-helper/main/doc/screenshot_color_pair_ranks.png)
+![screenshot draft pick](https://raw.githubusercontent.com/lubosz/python-mtga-helper/main/doc/screenshot_draft_pick.png)
