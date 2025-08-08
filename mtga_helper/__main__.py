@@ -28,6 +28,32 @@ def business_events_cb(event: dict, args):
     if "DraftId" in event:
         premier_draft_pick_cb(event, args)
 
+def gre_to_client_event_cb(event: dict, args):
+    # Ignore timer messages
+    if not 'transactionId' in event:
+        return
+
+    for msg in event["greToClientEvent"]["greToClientMessages"]:
+        match msg["type"]:
+            case "GREMessageType_GameStateMessage":
+                if "gameInfo" in msg["gameStateMessage"]:
+                    game_info = msg["gameStateMessage"]["gameInfo"]
+                    logger.debug(f"{game_info['matchState']} {game_info['stage']}")
+                    match game_info['matchState']:
+                        case "MatchState_GameComplete":
+                            for result in game_info["results"]:
+                                logger.info(f"Player {result['winningTeamId']} wins "
+                                            f"{game_info['matchID']} by {result['reason']}")
+                        case "MatchState_GameInProgress":
+                            if game_info['stage'] == "GameStage_Start":
+                                logger.info(f"Starting {game_info['superFormat']} game {game_info['matchID']}")
+                        case _:
+                            pass
+            case _:
+                pass
+
+
+
 def main():
     parser = argparse.ArgumentParser(prog='mtga-helper',
                                      description='Analyse MTGA log for sealed pools with 17lands data.',
@@ -69,6 +95,7 @@ def main():
             "EventGetCoursesV2": got_courses_cb,
             "BotDraftDraftStatus": bot_draft_pick_cb,
             "BotDraftDraftPick": bot_draft_pick_cb,
+            "GreToClientEvent": gre_to_client_event_cb,
         }
         follow_player_log(player_log_path, args, start_callbacks, end_callbacks)
     except KeyboardInterrupt:

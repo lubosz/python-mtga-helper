@@ -111,6 +111,9 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, start_cal
                 if match:
                     next_line_event = match.group(1)
                     # next_line_event_id = match.group(2)
+            # GreToClientEvent has a different format...
+            elif "GreToClientEvent" in line:
+                next_line_event = "GreToClientEvent"
 
             # Find json in start line
             elif line.startswith("[UnityCrossThreadLogger]==>"):
