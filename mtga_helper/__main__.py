@@ -9,12 +9,16 @@ from pathlib import Path
 import coloredlogs
 
 from mtga_helper.limited import print_sealed_course_info, bot_draft_pick_cb, premier_draft_pick_cb
-from mtga_helper.mtga_log import get_log_path, get_sealed_courses, follow_player_log
+from mtga_helper.mtga_log import get_log_path, get_sealed_courses, follow_player_log, print_courses
 
 logger = logging.getLogger(__name__)
 
 def got_courses_cb(event: dict, args: argparse.Namespace):
     courses = event["Courses"]
+
+    if args.verbose:
+        print_courses(courses)
+
     sealed_courses = get_sealed_courses(courses)
     logger.info(f"Found {len(sealed_courses)} ongoing sealed games.")
     for course in sealed_courses:

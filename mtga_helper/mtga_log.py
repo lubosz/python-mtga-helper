@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import time
+from datetime import datetime
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Iterator
@@ -118,8 +119,22 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, start_cal
                     else:
                         logger.debug(f"Unhandled start line event {current_line_event}")
 
+def time_str_to_dt(time_str: str) -> datetime:
+    time_str = time_str.strip('"')
+    parts = time_str.split('.')
+    # shorten microseconds to 6 digits
+    if len(parts[1]) > 12:
+        pre_tz_str = parts[0] + '.' + parts[1][:6]
+        tz_str = parts[1][7:]
+        time_str = pre_tz_str + tz_str
+    return datetime.strptime(time_str, "%Y-%m-%dT%H:%M:%S.%f%z")
+
 def print_courses(courses: list):
     table = []
+
+    print()
+    print("== Courses ==")
+    print()
 
     for course in courses:
         wins = "N/A"
@@ -143,8 +158,14 @@ def print_courses(courses: list):
             attribs[k] = v
 
         event_format = "N/A"
+        last_updated = "N/A"
         if attribs:
             event_format = attribs["Format"]
+            if "LastUpdated" in attribs:
+                last_updated_dt = time_str_to_dt(attribs["LastUpdated"])
+                last_updated = last_updated_dt.date().isoformat()
+
+        deck_name = deck_name.replace("?=?Loc/Decks/Precon/", "")
 
         row = (
             deck_name,
@@ -152,6 +173,7 @@ def print_courses(courses: list):
             event_format,
             len(course["CardPool"]),
             wins, losses,
+            last_updated,
         )
         table.append(row)
 
@@ -159,7 +181,8 @@ def print_courses(courses: list):
         "Deck Name",
         "Event",
         "Format",
-        "Pool Size",
+        "Pool",
         "Wins",
         "Losses",
+        "Updated"
     )))
