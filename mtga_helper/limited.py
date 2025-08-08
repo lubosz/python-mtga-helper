@@ -129,8 +129,35 @@ def print_sealed_course_info(course: dict, args: argparse.Namespace):
 
     print(tabulate(table, headers=("", "Pair", "Mean", "Score", "Range", "Creatures", "Non Creatures", "Non Lands")))
 
+def premier_draft_pick_cb(draft_status: dict, args):
+    event_name = draft_status["EventId"]
 
-def bot_draft_cb(event: dict, args):
+    event_name_split = event_name.split("_")
+    assert len(event_name_split) == 3
+    set_handle = event_name_split[1].lower()
+
+    rankings_by_arena_id = get_graded_rankings(set_handle, args.data_set, args)
+
+    print()
+    print(f"== Pack #{draft_status['PackNumber']} Pick #{draft_status['PickNumber']} ==")
+    print()
+
+    pack_rankings = []
+    for arena_id_str in draft_status["CardsInPack"]:
+        arena_id = int(arena_id_str)
+        if arena_id in rankings_by_arena_id:
+            pack_rankings.append(rankings_by_arena_id[arena_id])
+        else:
+            logger.warning(f"Could not find card with arena ID {arena_id}! Hopefully it's a basic land?")
+            logger.warning(f"Check scryfall: https://api.scryfall.com/cards/arena/{arena_id}")
+
+    if pack_rankings:
+        print_rankings(pack_rankings)
+    else:
+        logger.warning("No known cards in this pack... Is it only a land basic left?")
+
+
+def bot_draft_pick_cb(event: dict, args):
     target_non_land_count = LIMITED_DECK_SIZE - args.land_count
 
     draft_status = json.loads(event["Payload"])

@@ -8,7 +8,7 @@ from pathlib import Path
 
 import coloredlogs
 
-from mtga_helper.limited import print_sealed_course_info, bot_draft_cb
+from mtga_helper.limited import print_sealed_course_info, bot_draft_pick_cb, premier_draft_pick_cb
 from mtga_helper.mtga_log import get_log_path, get_sealed_courses, follow_player_log
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,10 @@ def got_courses_cb(event: dict, args: argparse.Namespace):
     logger.info(f"Found {len(sealed_courses)} ongoing sealed games.")
     for course in sealed_courses:
         print_sealed_course_info(course, args)
+
+def business_events_cb(event: dict, args):
+    if "DraftId" in event:
+        premier_draft_pick_cb(event, args)
 
 def main():
     parser = argparse.ArgumentParser(prog='mtga-helper',
@@ -54,12 +58,15 @@ def main():
             return
 
     try:
-        log_callbacks = {
-            "EventGetCoursesV2": got_courses_cb,
-            "BotDraftDraftStatus": bot_draft_cb,
-            "BotDraftDraftPick": bot_draft_cb,
+        start_callbacks = {
+            "LogBusinessEvents": business_events_cb,
         }
-        follow_player_log(player_log_path, args, log_callbacks)
+        end_callbacks = {
+            "EventGetCoursesV2": got_courses_cb,
+            "BotDraftDraftStatus": bot_draft_pick_cb,
+            "BotDraftDraftPick": bot_draft_pick_cb,
+        }
+        follow_player_log(player_log_path, args, start_callbacks, end_callbacks)
     except KeyboardInterrupt:
         logger.debug("Bye")
 

@@ -70,15 +70,21 @@ def get_sealed_courses(courses: list) -> list:
             sealed_courses.append(course)
     return sealed_courses
 
-def follow_player_log(player_log_path: Path, args: argparse.Namespace, log_callbacks):
+def follow_player_log(player_log_path: Path, args: argparse.Namespace, start_callbacks, end_callbacks):
     with player_log_path.open('r') as player_log_file:
         next_line_event = ""
         for line in follow(player_log_file):
             if next_line_event:
-                if next_line_event in log_callbacks:
-                    log_callbacks[next_line_event](json.loads(line), args)
+                if next_line_event in end_callbacks:
+                    try:
+                        payload = json.loads(line)
+                    except json.decoder.JSONDecodeError:
+                        # In case of LogBusinessEvents the payload is in the start line
+                        # and the following line only returns a status string
+                        payload = line
+                    end_callbacks[next_line_event](payload, args)
                 else:
-                    logger.debug(f"Unhandled json line {next_line_event}")
+                    logger.debug(f"Unhandled end line event {next_line_event}")
                 next_line_event = ""
 
             elif "Version:" in line and line.count("/") == 2:
@@ -98,6 +104,19 @@ def follow_player_log(player_log_path: Path, args: argparse.Namespace, log_callb
                 if match:
                     next_line_event = match.group(1)
                     # next_line_event_id = match.group(2)
+
+            # Find json in start line
+            elif line.startswith("[UnityCrossThreadLogger]==>"):
+                match = re.search(r"\[UnityCrossThreadLogger\]==> (\w+) (.*)", line)
+                if match:
+                    current_line_event = match.group(1)
+                    outer_json = match.group(2)
+                    outer_json_json_data = json.loads(outer_json)
+                    inner_json_data = json.loads(outer_json_json_data["request"])
+                    if current_line_event in start_callbacks:
+                        start_callbacks[current_line_event](inner_json_data, args)
+                    else:
+                        logger.debug(f"Unhandled start line event {current_line_event}")
 
 def print_courses(courses: list):
     table = []
