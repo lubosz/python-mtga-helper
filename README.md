@@ -3,7 +3,9 @@
 CLI application to parse log files from MTGA and analyse them using [17lands](http://17lands.com) data.
 The card grading is implemented according to [limited-grades](https://github.com/youssefm/limited-grades).
 
-Currently, only sealed pool analysis and bot draft is implemented.
+The following features are implemented:
+* Pool analysis for Quick Draft, Premier Draft and Sealed
+* Pick analysis for Quick Draft and Premier Draft
 
 ## Installation
 
